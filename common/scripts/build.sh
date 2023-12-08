@@ -472,12 +472,12 @@ main()
 	done
 
 	# Check /etc/passwd directly for pseudo environment
-	if ! cut -d':' -f3 /etc/passwd | grep -q "^$RK_OWNER_UID$"; then
-		error "ERROR: Unknown source owner($RK_OWNER_UID)"
-		error "Please create it:"
-		error "sudo useradd rk_compiler -u $RK_OWNER_UID"
-		exit 1
-	fi
+	# if ! cut -d':' -f3 /etc/passwd | grep -q "^$RK_OWNER_UID$"; then
+	# 	error "ERROR: Unknown source owner($RK_OWNER_UID)"
+	# 	error "Please create it:"
+	# 	error "sudo useradd rk_compiler -u $RK_OWNER_UID"
+	# 	exit 1
+	# fi
 
 	# Prepare log dirs
 	if [ ! -d "$RK_LOG_DIR" ]; then
