@@ -21,5 +21,6 @@ export KMAKE="make -C "$RK_SDK_DIR/kernel/" -j$(( $(nproc) + 1 )) \
 
 if [ -z "$DRY_RUN" ] && [ "$RK_SUDO_ROOT" ]; then
 	# Sudo to source code owner for Debian's post stage
-	export KMAKE="sudo -u #$RK_OWNER_UID $KMAKE"
+	# export KMAKE="sudo -u #$RK_OWNER_UID $KMAKE"
+	export KMAKE="sudo $KMAKE"
 fi
