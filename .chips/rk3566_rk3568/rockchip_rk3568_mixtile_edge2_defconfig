@@ -1,0 +1,6 @@
+RK_KERNEL_DTS_NAME="rk3568-mixtile-edge2"
+RK_KERNEL_CFG="mixtile_edge2_defconfig"
+RK_PARAMETER="parameter-buildroot-fit.txt"
+RK_UBOOT_SPL=y
+RK_UBOOT_CFG="mixtile_edge2"
+RK_USE_FIT_IMG=y
