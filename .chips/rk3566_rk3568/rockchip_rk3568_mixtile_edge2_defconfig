@@ -5,3 +5,4 @@ RK_UBOOT_SPL=y
 RK_UBOOT_CFG="mixtile_edge2"
 RK_USE_FIT_IMG=y
 RK_ROOTFS_SYSTEM_DEBIAN=y
+RK_PARAMETER="parameter-buildroot-fit.txt"
