@@ -187,7 +187,7 @@ rk_security_setup_ramboot_prebuild()
 	else
 		source "$security_file"
 		sed -i "s/ENC_EN=/ENC_EN=false/" "$init_file"
-		sed -i "s/OFFSET=/OFFSET=$hash_offset/" "$init_file"
+		sed -i "s/^OFFSET=/OFFSET=$hash_offset/" "$init_file"
 		sed -i "s/HASH=/HASH=$root_hash/" "$init_file"
 	fi
 
@@ -388,10 +388,10 @@ build_hook()
 
 usage_hook()
 {
-	echo -e "security-createkeys               \tcreate keys for security"
-	echo -e "security-misc                     \tbuild misc with system encryption key"
-	echo -e "security-ramboot                  \tbuild security ramboot"
-	echo -e "security-system                   \tbuild security system"
+	usage_oneline "security-createkeys" "create keys for security"
+	usage_oneline "security-misc" "build misc with system encryption key"
+	usage_oneline "security-ramboot" "build security ramboot"
+	usage_oneline "security-system" "build security system"
 }
 
 clean_hook()
@@ -400,6 +400,6 @@ clean_hook()
 }
 
 [ -z "$RK_SESSION" ] || \
-	source "${RK_BUILD_HELPER:-$(dirname "$(realpath "$0")")/../build-hooks/build-helper}"
+	source "${RK_BUILD_HELPER:-$(dirname "$(realpath "$0")")/build-helper}"
 
 [ -z "$1" ] || build_hook $@

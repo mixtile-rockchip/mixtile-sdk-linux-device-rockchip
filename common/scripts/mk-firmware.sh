@@ -75,7 +75,7 @@ build_firmware()
 
 usage_hook()
 {
-	echo -e "firmware                          \tpack and check firmwares"
+	usage_oneline "firmware" "pack and check firmwares"
 }
 
 clean_hook()
@@ -93,6 +93,6 @@ post_build_hook()
 	build_firmware
 }
 
-source "${RK_BUILD_HELPER:-$(dirname "$(realpath "$0")")/../build-hooks/build-helper}"
+source "${RK_BUILD_HELPER:-$(dirname "$(realpath "$0")")/build-helper}"
 
 post_build_hook $@

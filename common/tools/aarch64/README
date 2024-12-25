@@ -2,7 +2,7 @@ Prebuilt tools (static linked)
 ==============================
 
 Prebuilt from Rockchip buildroot 2021 SDK with kernel 6.1:
-446584e244 uvc-gadget: Fix compile error for armhf
+60666e4019 gptfdisk: Support forcing static build
 
 Using rockchip_{rk3036,rk3326_64}_defconfig with addition configs:
 BR2_GCC_VERSION_11_X=y
@@ -32,6 +32,11 @@ BR2_PACKAGE_ELFUTILS=y
 
 BR2_PACKAGE_FRECON=y
 BR2_PACKAGE_FRECON_STATIC=y
+
+BR2_PACKAGE_GPTFDISK=y
+BR2_PACKAGE_GPTFDISK_STATIC=y
+BR2_PACKAGE_GPTFDISK_GDISK=y
+BR2_PACKAGE_GPTFDISK_SGDISK=y
 
 BR2_PACKAGE_JPEG_TURBO=y
 BR2_PACKAGE_JPEG_TURBO_STATIC=y
@@ -115,6 +120,6 @@ For building kmsgrab:
 
 External sources:
 1/ rkwifibt:
-fe32b48 rkwifibt: bt: update bt firmware for ap chips
+ee9539a wifibt-init.sh: Fix error when wlan0 been renamed
 2/ rktoolkit:
 bc1d85d vendor_storage: fixed hex string begin with 00, get wrong string length when read

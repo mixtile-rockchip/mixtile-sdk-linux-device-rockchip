@@ -2,9 +2,12 @@
 
 KERNELS=$(ls | grep kernel- || true)
 
-make_kernel_config()
+do_make_kernel_config()
 {
 	KERNEL_CONFIGS_DIR="$RK_SDK_DIR/kernel/arch/$RK_KERNEL_ARCH/configs"
+	KERNEL_CFG="$1"
+	shift
+	KERNEL_CFG_FRAGMENTS="$@"
 
 	if [ "$RK_CHIP" = "$RK_CHIP_FAMILY" ]; then
 		POSSIBLE_FRAGMENTS="$RK_CHIP"
@@ -25,8 +28,18 @@ make_kernel_config()
 		BASIC_CFG_FRAGMENTS="$BASIC_CFG_FRAGMENTS $cfg"
 	done
 
-	run_command $KMAKE ${1:-$RK_KERNEL_CFG} $BASIC_CFG_FRAGMENTS \
-		$RK_KERNEL_CFG_FRAGMENTS
+	run_command $KMAKE $KERNEL_CFG $BASIC_CFG_FRAGMENTS $KERNEL_CFG_FRAGMENTS
+}
+
+make_kernel_config()
+{
+	do_make_kernel_config "$RK_KERNEL_CFG" "$RK_KERNEL_CFG_FRAGMENTS"
+}
+
+make_recovery_kernel_config()
+{
+	do_make_kernel_config "${RK_KERNEL_RECOVERY_CFG:-$RK_KERNEL_CFG}" \
+		"${RK_KERNEL_RECOVERY_CFG_FRAGMENTS:-$RK_KERNEL_CFG_FRAGMENTS}"
 }
 
 do_build()
@@ -115,6 +128,7 @@ build_recovery_kernel()
 	RECOVERY_KERNEL_DTB_TARGET="${RECOVERY_KERNEL_DTB##*/boot/dts/}"
 
 	if [ -z "$RK_KERNEL_RECOVERY_CFG" ] && \
+		[ -z "$RK_KERNEL_RECOVERY_CFG_FRAGMENTS" ] && \
 		[ -z "$RK_KERNEL_RECOVERY_DTS_NAME" ] && \
 		[ -z "$RK_KERNEL_RECOVERY_LOGO" ] && \
 		[ -z "$RK_KERNEL_RECOVERY_LOGO_KERNEL" ]; then
@@ -122,7 +136,7 @@ build_recovery_kernel()
 		run_command ln -rsf "$KERNEL_DIR" "$RECOVERY_KERNEL_DIR"
 		run_command cd "$RECOVERY_KERNEL_DIR"
 
-		make_kernel_config "$RK_KERNEL_CFG"
+		make_kernel_config
 		run_command $KMAKE "$(basename "$RECOVERY_KERNEL_IMG")"
 		run_command $KMAKE "$RECOVERY_KERNEL_DTB_TARGET"
 	else
@@ -132,25 +146,28 @@ build_recovery_kernel()
 			run_command mkdir -p "$RECOVERY_KERNEL_DIR"
 		fi
 
+		LOADER_LOGO="${RK_KERNEL_RECOVERY_LOGO:-logo.bmp}"
+		KERNEL_LOGO="${RK_KERNEL_RECOVERY_LOGO_KERNEL:-logo_kernel.bmp}"
+
 		run_command cd "$RECOVERY_KERNEL_DIR"
 		run_command ln -rsf "$KERNEL_DIR/.git" .
-		run_command ln -rsf \
-			"$KERNEL_DIR/${RK_KERNEL_RECOVERY_LOGO:-logo.bmp}" \
-			logo.bmp
-		run_command ln -rsf \
-			"$KERNEL_DIR/${RK_KERNEL_RECOVERY_LOGO_KERNEL:-logo_kernel.bmp}" \
-			logo_kernel.bmp
+		run_command ln -rsf "$KERNEL_DIR/$LOADER_LOGO" logo.bmp
+		run_command ln -rsf "$KERNEL_DIR/$KERNEL_LOGO" logo_kernel.bmp
 		run_command mkdir -p scripts
 		run_command ln -rsf "$KERNEL_DIR/scripts/resource_tool" scripts/
 
-		# HACK: Fake mrproper
+		# HACK: Based on kernel/Makefile's MRPROPER_FILES
 		run_command tar cf "$RK_OUTDIR/kernel.tar" \
 			--remove-files --ignore-failed-read \
-			$KERNEL_DIR/.config $KERNEL_DIR/include/config \
-			$KERNEL_DIR/arch/$RK_KERNEL_ARCH/include/generated
+			"$KERNEL_DIR/.config" "$KERNEL_DIR/.config.old" \
+			"$KERNEL_DIR/include/config" \
+			"$KERNEL_DIR/include/generated" \
+			"$KERNEL_DIR/arch/$RK_KERNEL_ARCH/include/generated" \
+			"$KERNEL_DIR/Module.symvers"
+
 
 		KMAKE="$KMAKE O=$RECOVERY_KERNEL_DIR"
-		make_kernel_config "$RK_KERNEL_RECOVERY_CFG"
+		make_recovery_kernel_config
 		run_command $KMAKE "$(basename "$RECOVERY_KERNEL_IMG")"
 		run_command $KMAKE "$RECOVERY_KERNEL_DTB_TARGET"
 
@@ -207,16 +224,15 @@ pack_linux_headers()
 	run_command ln -rsf "$KBUILD_DIR" "$HEADERS_KBUILD_DIR"
 
 	cat << EOF > "$HEADERS_PACK_SCRIPT"
-{
-	# Based on kernel/scripts/package/builddeb (6.1)
-	find . arch/$RK_KERNEL_ARCH -maxdepth 1 -name Makefile\*
-	find include scripts -type f -o -type l
-	find arch/$RK_KERNEL_ARCH -name module.lds -o -name Kbuild.platforms -o -name Platform
-	find \$(find arch/$RK_KERNEL_ARCH -name include -o -name scripts -type d) -type f
-	find arch/$RK_KERNEL_ARCH/include Module.symvers include scripts -type f
-	echo .config
-} | tar --no-recursion --ignore-failed-read -T - \
-	-cf "$HEADERS_TAR"
+	{
+		# Based on kernel/scripts/package/builddeb (6.1)
+		find . arch/$RK_KERNEL_ARCH -maxdepth 1 -name Makefile\*
+		find include scripts -type f -o -type l
+		find arch/$RK_KERNEL_ARCH -name module.lds -o -name Kbuild.platforms -o -name Platform
+		find \$(find arch/$RK_KERNEL_ARCH -name include -o -name scripts -type d) -type f
+		find arch/$RK_KERNEL_ARCH/include Module.symvers include scripts -type f
+		echo .config
+	} | tar --no-recursion --ignore-failed-read -T - -cf "$HEADERS_TAR"
 
 	# Pack kbuild
 	tar -rf "$HEADERS_TAR" -C "$HEADERS_KBUILD_DIR" scripts/ tools/
@@ -233,10 +249,11 @@ EOF
 	[ -z "$DRY_RUN" ] || return 0
 
 	# Packing .deb package
+	KERNELRELEASE="$($KMAKE --no-print-directory kernelrelease)"
 	TEMP_DIR="$(mktemp -d)"
 	DEBIAN_ARCH="${KBUILD_ARCH/aarch64/arm64}"
 	DEBIAN_PKG="linux-headers-${RK_KERNEL_VERSION_RAW}-$RK_KERNEL_ARCH"
-	KERNEL_HEADERS_DIR="/usr/src/$DEBIAN_PKG"
+	KERNEL_HEADERS_DIR="/usr/src/linux-headers-$KERNELRELEASE"
 	DEBIAN_DIR="$TEMP_DIR/${DEBIAN_PKG}_$DEBIAN_ARCH"
 	DEBIAN_HEADERS_DIR="$DEBIAN_DIR/$KERNEL_HEADERS_DIR"
 	DEBIAN_DEB="$DEBIAN_DIR.deb"
@@ -247,8 +264,6 @@ EOF
 	mkdir -p "$DEBIAN_HEADERS_DIR"
 	tar xf "$HEADERS_TAR" -C "$DEBIAN_HEADERS_DIR"
 
-	KERNELRELEASE="$(grep -o '".*"' \
-		"$DEBIAN_HEADERS_DIR/include/generated/utsrelease.h" | tr -d '"')"
 	KERNEL_MODULES_DIR="/lib/modules/$KERNELRELEASE"
 
 	mkdir -p "$DEBIAN_DIR/$KERNEL_MODULES_DIR"
@@ -273,7 +288,7 @@ EOF
 	cat "$DEBIAN_CONTROL"
 
 	message "Packing $(basename "$DEBIAN_DEB")..."
-	dpkg-deb -b "$DEBIAN_DIR" >/dev/null 2>&1
+	dpkg-deb -b "$DEBIAN_DIR"
 	mv "$DEBIAN_DEB" "$HEADERS_OUTDIR"
 
 	rm -rf "$TEMP_DIR"
@@ -288,18 +303,18 @@ EOF
 usage_hook()
 {
 	for k in $KERNELS; do
-		echo -e "$k[:dry-run]             \tbuild kernel ${k#kernel-}"
+		usage_oneline "$k[:dry-run]" "build kernel ${k#kernel-}"
 	done
 
-	echo -e "kernel[:dry-run]                 \tbuild kernel"
-	echo -e "recovery-kernel[:dry-run]        \tbuild kernel for recovery"
-	echo -e "kernel-modules[:<dst dir>:dry-run]\tbuild kernel modules"
-	echo -e "modules[:<dst dir>:dry-run]      \talias of kernel-modules"
-	echo -e "linux-headers[:<arch>:dry-run]   \tbuild linux-headers"
-	echo -e "kernel-config[:dry-run]          \tmodify kernel defconfig"
-	echo -e "kconfig[:dry-run]                \talias of kernel-config"
-	echo -e "kernel-make[:<arg1>:<arg2>]      \trun kernel make"
-	echo -e "kmake[:<arg1>:<arg2>]            \talias of kernel-make"
+	usage_oneline "kernel[:dry-run]" "build kernel"
+	usage_oneline "recovery-kernel[:dry-run]" "build kernel for recovery"
+	usage_oneline "kernel-modules[:<dst dir>:dry-run]" "build kernel modules"
+	usage_oneline "modules[:<dst dir>:dry-run]" "alias of kernel-modules"
+	usage_oneline "linux-headers[:<arch>:dry-run]" "build linux-headers"
+	usage_oneline "kernel-config[:dry-run]" "modify kernel defconfig"
+	usage_oneline "kconfig[:dry-run]" "alias of kernel-config"
+	usage_oneline "kernel-make[:<arg1>:<arg2>]" "run kernel make"
+	usage_oneline "kmake[:<arg1>:<arg2>]" "alias of kernel-make"
 }
 
 clean_hook()
@@ -452,6 +467,10 @@ post_build_hook()
 	make_kernel_config
 	run_command $KMAKE Image modules_prepare
 
+	if [ -z "$DRY_RUN" ]; then
+		"$RK_SCRIPTS_DIR/check-kernel-headers.sh"
+	fi
+
 	if [ "$1" ]; then
 		pack_linux_headers "$1"
 	else
@@ -468,7 +487,7 @@ post_build_hook_dry()
 	DRY_RUN=1 post_build_hook $@
 }
 
-source "${RK_BUILD_HELPER:-$(dirname "$(realpath "$0")")/../build-hooks/build-helper}"
+source "${RK_BUILD_HELPER:-$(dirname "$(realpath "$0")")/build-helper}"
 
 case "${1:-kernel}" in
 	kernel-config | kconfig | kernel-make | kmake) pre_build_hook "$@" ;;

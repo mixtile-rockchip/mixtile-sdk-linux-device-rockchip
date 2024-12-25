@@ -4,7 +4,7 @@
 
 usage_hook()
 {
-	echo -e "misc                              \tpack misc image"
+	usage_oneline "misc" "pack misc image"
 }
 
 clean_hook()
@@ -59,6 +59,6 @@ build_hook()
 	finish_build build_misc
 }
 
-source "${RK_BUILD_HELPER:-$(dirname "$(realpath "$0")")/../build-hooks/build-helper}"
+source "${RK_BUILD_HELPER:-$(dirname "$(realpath "$0")")/build-helper}"
 
 build_hook
