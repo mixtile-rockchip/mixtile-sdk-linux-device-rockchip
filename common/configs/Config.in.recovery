@@ -29,6 +29,7 @@ config RK_RECOVERY_INITRD_TYPE
 	default "romfs" if RK_RECOVERY_ROMFS
 	default "cpio" if RK_RECOVERY_CPIO
 	default "cpio.gz" if RK_RECOVERY_CPIO_GZ
+	default "cpio.xz" if RK_RECOVERY_CPIO_XZ
 
 choice
 	prompt "ramdisk filesystem type"
@@ -43,12 +44,16 @@ config RK_RECOVERY_CPIO
 config RK_RECOVERY_CPIO_GZ
 	bool "cpio.gz"
 
+config RK_RECOVERY_CPIO_XZ
+	bool "cpio.xz"
+
 endchoice # init RD type
 
 if RK_USE_FIT_IMG
 
 config RK_RECOVERY_FIT_ITS_NAME
 	string "its script for FIT recovery image"
+	default "zboot4recovery.its" if RK_BOOT_COMPRESSED
 	default "boot4recovery.its"
 
 config RK_RECOVERY_FIT_ITS

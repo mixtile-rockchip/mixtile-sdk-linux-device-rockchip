@@ -19,7 +19,7 @@ build_wifibt()
 
 usage_hook()
 {
-	echo -e "wifibt[:<dst dir>[:<chip>]]       \tbuild Wifi/BT"
+	usage_oneline "wifibt[:<dst dir>[:<chip>]]" "build Wifi/BT"
 }
 
 BUILD_CMDS="wifibt"
@@ -29,6 +29,6 @@ build_hook()
 	build_wifibt $@
 }
 
-source "${RK_BUILD_HELPER:-$(dirname "$(realpath "$0")")/../build-hooks/build-helper}"
+source "${RK_BUILD_HELPER:-$(dirname "$(realpath "$0")")/build-helper}"
 
 build_wifibt $@

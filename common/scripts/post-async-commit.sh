@@ -2,7 +2,7 @@
 
 POST_ROOTFS_ONLY=1
 
-source "${RK_POST_HELPER:-$(dirname "$(realpath "$0")")/../post-hooks/post-helper}"
+source "${RK_POST_HELPER:-$(dirname "$(realpath "$0")")/post-helper}"
 
 [ "$RK_ROOTFS_ASYNC_COMMIT" ] || exit 0
 
@@ -17,7 +17,7 @@ cd "$RK_SDK_DIR"
 mkdir -p "$TARGET_DIR/usr/bin"
 install -m 0755 external/rkscript/async-commit "$TARGET_DIR/usr/bin/"
 
-install -m 0755 "$RK_TOOLS_DIR/armhf/modetest" "$TARGET_DIR/usr/bin/"
+ensure_tools "$TARGET_DIR/usr/bin/modetest"
 
 install_sysv_service external/rkscript/S*async-commit.sh S
 install_busybox_service external/rkscript/S*async-commit.sh

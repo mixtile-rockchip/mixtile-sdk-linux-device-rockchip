@@ -150,15 +150,15 @@ prepare_config()
 
 usage_hook()
 {
-	echo -e "chip[:<chip>[:<config>]]          \tchoose chip"
-	echo -e "defconfig[:<config>]              \tchoose defconfig"
-	echo -e " *_defconfig                      \tswitch to specified defconfig"
+	usage_oneline "chip[:<chip>[:<config>]]" "choose chip"
+	usage_oneline "defconfig[:<config>]" "choose defconfig"
+	usage_oneline " *_defconfig" "switch to specified defconfig"
 	echo "    available defconfigs:"
-	ls "$RK_CHIP_DIR/" | grep "defconfig$" | sed "s/^/\t/"
-	echo -e " olddefconfig                     \tresolve any unresolved symbols in .config"
-	echo -e " savedefconfig                    \tsave current config to defconfig"
-	echo -e " menuconfig                       \tinteractive curses-based configurator"
-	echo -e "config                            \tmodify SDK defconfig"
+	ls "$RK_CHIP_DIR/" | grep "defconfig$" | sed "s/^/    /"
+	usage_oneline " olddefconfig" "resolve any unresolved symbols in .config"
+	usage_oneline " savedefconfig" "save current config to defconfig"
+	usage_oneline " menuconfig" "interactive curses-based configurator"
+	usage_oneline "config" "modify SDK defconfig"
 }
 
 clean_hook()
@@ -187,6 +187,6 @@ init_hook()
 	esac
 }
 
-source "${RK_BUILD_HELPER:-$(dirname "$(realpath "$0")")/../build-hooks/build-helper}"
+source "${RK_BUILD_HELPER:-$(dirname "$(realpath "$0")")/build-helper}"
 
 init_hook $@

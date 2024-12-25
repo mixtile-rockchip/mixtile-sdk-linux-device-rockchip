@@ -37,7 +37,7 @@ build_release()
 	message "=========================================="
 
 	shift
-	RELEASE_BASE_DIR="$RK_OUTDIR/$BOARD${1:+/$1}"
+	RELEASE_BASE_DIR="$RK_OUTDIR/releases/${1:+$1/}${2:-$BOARD}"
 	case "$(readlink "$RK_OUTDIR/rootfs")" in
 		buildroot) RELEASE_DIR="$RELEASE_BASE_DIR/BUILDROOT" ;;
 		debian) RELEASE_DIR="$RELEASE_BASE_DIR/DEBIAN" ;;
@@ -59,8 +59,11 @@ build_release()
 	if [ "$RK_KERNEL" ]; then
 		mkdir -p "$RELEASE_DIR/kernel"
 
-		message "Saving linux-headers..."
-		cp -rv "$RK_OUTDIR/linux-headers" "$RELEASE_DIR/kernel/"
+		if [ -d "$RK_OUTDIR/linux-headers" ]; then
+			message "Saving linux-headers..."
+			cp -rv "$RK_OUTDIR/linux-headers" \
+				"$RELEASE_DIR/kernel/"
+		fi
 
 		message "Saving kernel files..."
 		cp -rv kernel/.config kernel/System.map kernel/vmlinux \
@@ -114,14 +117,16 @@ build_all_release()
 
 usage_hook()
 {
-	echo -e "all                               \tbuild images"
-	echo -e "release                           \trelease images and build info"
-	echo -e "all-release                       \tbuild and release images"
+	usage_oneline "all" "build images"
+	usage_oneline "release[:<subdir>[:<name>]]" \
+		"release images and build info"
+	usage_oneline "all-release[:<subdir>[:<name>]]" \
+		"build and release images"
 }
 
 clean_hook()
 {
-	rm -rf "$RK_OUTDIR" "$RK_OUTDIR"/$BOARD*
+	rm -rf "$RK_OUTDIR" "$RK_OUTDIR"/releases
 }
 
 BUILD_CMDS="all all-release"
@@ -139,7 +144,7 @@ post_build_hook()
 	build_release $@
 }
 
-source "${RK_BUILD_HELPER:-$(dirname "$(realpath "$0")")/../build-hooks/build-helper}"
+source "${RK_BUILD_HELPER:-$(dirname "$(realpath "$0")")/build-helper}"
 
 case "${1:-all-release}" in
 	all) build_all ;;
