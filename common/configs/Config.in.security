@@ -75,9 +75,10 @@ config RK_SECURITY_CHECK_METHOD
 	default "base" if RK_SECURITY_CHECK_BASE
 	default "system-encryption" if RK_SECURITY_CHECK_SYSTEM_ENCRYPTION
 	default "system-verity" if RK_SECURITY_CHECK_SYSTEM_VERITY
+	default "system-encryption-by-openssl" if RK_SECURITY_CHECK_SYSTEM_ENCRYPTION_BY_OPENSSL
 
 choice
-	prompt "security check method (base|system-encryption|system-verity)"
+	prompt "security check method (base|system-encryption|system-verity|system-encryption-by-openssl)"
 	default RK_SECURITY_CHECK_SYSTEM_VERITY if RK_CHIP_FAMILY = "rk3566_rk3568"
 
 config RK_SECURITY_CHECK_BASE
@@ -90,6 +91,13 @@ config RK_SECURITY_CHECK_SYSTEM_ENCRYPTION
 	help
 	  Check firmwares include loader,uboot,boot or recovery.
 	  And encrypte system image.
+	  And system is read-only if RK_ROOTFS_TYPE was ubi type.
+
+config RK_SECURITY_CHECK_SYSTEM_ENCRYPTION_BY_OPENSSL
+	bool "system-encryption-by-openssl"
+	help
+	  Check firmwares include loader,uboot,boot or recovery.
+	  And encrypte system image by openssl.
 	  And system is read-only if RK_ROOTFS_TYPE was ubi type.
 
 config RK_SECURITY_CHECK_SYSTEM_VERITY
@@ -157,6 +165,14 @@ config RK_SECURITY_BURN_KEY
 	bool "burn security key"
 	help
 	  Burn security key's hash to non volatile memory.
+
+config RK_SECURITY_REMOTE_SIGN
+	bool "security remote sign"
+	help
+	  Enable this option to support remote signing functionality.
+	  Remote signing allows firmware to be signed without direct access to the device.
+	  This is particularly useful in scenarios where signing needs to be done in a secure environment.
+	  Ensure you understand the security implications and operational requirements before enabling this feature.
 
 endif # Security
 endmenuconfig # Security

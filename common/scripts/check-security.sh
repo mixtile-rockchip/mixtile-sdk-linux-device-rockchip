@@ -22,7 +22,8 @@ ROOTFS_UBI_FIXED_CONFIGS=" \
 
 UBOOT_FIT_FIXED_CONFIGS=" \
 	CONFIG_FIT_SIGNATURE \
-	CONFIG_SPL_FIT_SIGNATURE"
+	CONFIG_SPL_FIT_SIGNATURE \
+	CONFIG_SPL_ROCKCHIP_SECURE_OTP"
 
 UBOOT_AVB_FIXED_CONFIGS=" \
 	CONFIG_ANDROID_AVB \
@@ -58,7 +59,7 @@ rk_security_check_keys()
 			exit -1
 		fi
 
-		if [ "$1" = "system-encryption" ] && \
+		if [ "$1" = "system-encryption" ] || [ "$1" = "system-encryption-by-openssl" ] && \
 			[ ! -f $UBOOT/keys/system_enc_key ]; then
 			echo "ERROR: No enc key(u-boot/keys/system_enc_key) found in u-boot"
 			echo "       Create it by ./build.sh security-createkeys or move your key to it"
@@ -74,6 +75,12 @@ BOOT_FIXED_CONFIGS=" \
 	CONFIG_BLK_DEV_LOOP \
 	CONFIG_CRYPTO_USER \
 	CONFIG_CRYPTO_USER_API_HASH"
+
+BOOT_CRYPT_BY_OPENSSL_FIXED_CONFIGS=" \
+	CONFIG_BLK_DEV_LOOP \
+	CONFIG_CRYPTO_HW \
+	CONFIG_CRYPTO_DEV_ROCKCHIP \
+	CONFIG_CRYPTO_DEV_ROCKCHIP_DEV"
 
 BOOT_FIXED_UNDER_6_1_CONFIG="
 	CONFIG_BLK_DEV_CRYPTOLOOP"
@@ -114,7 +121,7 @@ rk_security_match_overlay()
 rk_security_check_system()
 {
 	case $1 in
-		system-encryption|system-verity)
+		system-encryption|system-verity|system-encryption-by-openssl)
 			if [ "$RK_ROOTFS_TYPE" == "ubi" ]; then
 				config_check $2 "$ROOTFS_UBI_FIXED_CONFIGS"
 			fi
@@ -129,11 +136,13 @@ rk_security_check_kernel_config()
 	[ ! -z "$RK_SECURITY" ] || return 0
 
 	if [ $(echo "$RK_KERNEL_VERSION_RAW < 6.1" | bc) -eq 1 ]; then
+		BOOT_CRYPT_BY_OPENSSL_FIXED_CONFIGS="$BOOT_CRYPT_BY_OPENSSL_FIXED_CONFIGS $BOOT_FIXED_UNDER_6_1_CONFIG"
 		BOOT_FIXED_CONFIGS="$BOOT_FIXED_CONFIGS $BOOT_FIXED_UNDER_6_1_CONFIG"
 	fi
 
 	case $1 in
 		system-encryption) BOOT_FIXED_CONFIGS="$BOOT_FIXED_CONFIGS $BOOT_OPTEE_FIXED_CONFIGS" ;& # fallthrough
+		system-encryption-by-openssl) BOOT_FIXED_CONFIGS="$BOOT_CRYPT_BY_OPENSSL_FIXED_CONFIGS $BOOT_OPTEE_FIXED_CONFIGS" ;& # fallthrough
 		system-verity) config_check $2 "$BOOT_FIXED_CONFIGS" ;;
 		base) return 0;;
 		*) exit -1;;
@@ -142,7 +151,7 @@ rk_security_check_kernel_config()
 
 rk_security_check_kernel_dts()
 {
-	test "$1" = "system-encryption" || return 0
+	test "$1" = "system-encryption" || test "$1" = "system-encryption-by-openssl" || return 0
 
 	if [ "${2##*.}" = "dtb" ]; then
 		dtsfile=$(mktemp)
@@ -191,7 +200,7 @@ rk_security_check_kernel()
 
 rk_security_check_ramboot()
 {
-	if [ "$1" != "system-encryption" ]; then
+	if [ "$1" != "system-encryption" ] && [ "$1" != "system-encryption-by-openssl" ]; then
 		return 0
 	fi
 	shift

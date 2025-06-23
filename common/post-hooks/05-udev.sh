@@ -1,1 +1,0 @@
-../scripts/post-udev.sh

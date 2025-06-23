@@ -17,7 +17,7 @@ rk_partition_size_sector_to_readable()
 	# Consider 0 as unlimited
 	case "${1:-grow}" in
 		- | 0 | grow)
-			echo grow
+			echo auto-resized
 			return 0 ;;
 	esac
 
@@ -42,7 +42,7 @@ rk_partition_size_readable_to_sector()
 
 	case "${SIZE:-grow}" in
 		# Consider 0 as unlimited
-		- | 0 | grow)
+		- | 0 | grow | auto-resized)
 			echo '-'
 			return 0
 			;;
@@ -233,165 +233,16 @@ rk_partition_edit()
 {
 	TEMP_FILE="$(mktemp)"
 
-	echo "# name size" > "$TEMP_FILE"
+	echo -e "# name size" > "$TEMP_FILE"
 	while read NAME SIZE; do
 		SIZE_STR=$(rk_partition_size_sector_to_readable $SIZE)
-		echo "$NAME $SIZE # $SIZE_STR" >> "$TEMP_FILE"
+		echo "$NAME $SIZE # ($SIZE_STR)" >> "$TEMP_FILE"
 	done < "$PART_TABLE"
 
 	eval ${EDITOR:-vi} "$TEMP_FILE"
 
-	sed -i -e "/^#/d" -e "s/[ ]*#.*//" "$TEMP_FILE"
+	sed -i -e "/^#/d" -e "s/[ \t]*#.*//" "$TEMP_FILE"
 	mv "$TEMP_FILE" "$PART_TABLE"
-
-	rk_partition_save
-}
-
-rk_partition_del()
-{
-	[ "$#" -gt 0 ] || return 1
-
-	PART_NAME="$(rk_partition_name $1)"
-	[ "$PART_NAME" ] || return 1
-
-	sed -i "/^$PART_NAME /d" "$PART_TABLE"
-
-	rk_partition_save
-}
-
-rk_partition_rename()
-{
-	[ "$#" -gt 1 ] || return 1
-
-	echo $2 | grep -qE "^[a-zA-Z]" || return 1
-	if rk_partition_name $2 &>/dev/null; then
-		error "Part already exists ($2)!"
-		return 1
-	fi
-
-	PART_NAME="$(rk_partition_name $1)"
-	[ "$PART_NAME" ] || return 1
-
-	sed -i "s/^$PART_NAME /$2 /" "$PART_TABLE"
-
-	rk_partition_save
-}
-
-rk_partition_move()
-{
-	[ "$#" -gt 1 ] || return 1
-
-	echo $2 | grep -qE "^[0-9]*$" || return 1
-	PART_NAME="$(rk_partition_name $2)"
-	[ "$PART_NAME" ] || return 1
-
-	PART_NAME="$(rk_partition_name $1)"
-	[ "$PART_NAME" ] || return 1
-
-	PART=$(sed -n "/^$PART_NAME /p" "$PART_TABLE")
-
-	NUM=$(rk_partition_num)
-	if [ "$2" -eq "$NUM" ] && grep -q "\-$" "$PART_TABLE"; then
-		error "Cannot move after unlimited part!"
-		return 1
-	fi
-
-	if echo "$PART" | grep -q "\-$"; then
-		error "Cannot move unlimited part ($1)!"
-		return 1
-	fi
-
-	sed -i "/^$PART$/d" "$PART_TABLE"
-	sed -i "$2 a$PART" "$PART_TABLE"
-
-	rk_partition_save
-}
-
-rk_partition_resize()
-{
-	[ "$#" -gt 1 ] || return 1
-
-	case "$2" in
-		0x*) SIZE=$2 ;;
-		*) SIZE="$(rk_partition_size_readable_to_sector $2)" ;;
-	esac
-
-	PART_NAME="$(rk_partition_name $1)"
-	[ "$PART_NAME" ] || return 1
-
-	sed -i "s/^$PART_NAME .*/$PART_NAME $SIZE/" "$PART_TABLE"
-
-	rk_partition_save
-}
-
-rk_partition_insert()
-{
-	[ "$#" -gt 1 ] || return 1
-
-	echo $1 | grep -qE "^[0-9]*$" || return 1
-
-	IDX=$1
-	if [ "$IDX" -lt 1 ]; then
-		error "Index should not be less than 1!"
-		return 1
-	fi
-
-	NUM=$(rk_partition_num)
-	if [ "$IDX" -gt "$(($NUM + 1))" ]; then
-		error "Index should not be greater than $(($NUM + 1))!"
-		return 1
-	fi
-
-	echo $2 | grep -qE "^[a-zA-Z]" || return 1
-	if rk_partition_name $2 &>/dev/null; then
-		error "Part already exists ($2)!"
-		return 1
-	fi
-
-	case "${3:-grow}" in
-		0x*) SIZE=$3 ;;
-		*) SIZE="$(rk_partition_size_readable_to_sector $3)" ;;
-	esac
-
-	if [ "$SIZE" = "-" ] && [ "$IDX" -lt "$(( $NUM + 1 ))" ]; then
-		error "Only latest part can be unlimited!"
-		return 1
-	fi
-
-	if [ "$IDX" -eq "$(( $NUM + 1 ))" ] && grep -q "\-$" "$PART_TABLE"; then
-		error "Cannot insert after unlimited part!"
-		return 1
-	fi
-
-	sed -i "$IDX a$2 $SIZE" "$PART_TABLE"
-
-	rk_partition_save
-}
-
-# Usage: <offset> <name> <size> <name> <size>...
-rk_partition_create()
-{
-	[ "$#" -gt 1 ] || return 1
-
-	{
-		echo "$HDR_PART $(echo $(( $1 )) | awk '{printf "0x%08x",$1}')"
-		shift
-
-		while [ "$1" ]; do
-			NAME=$1
-			shift
-
-			SIZE="$(rk_partition_size_readable_to_sector $1)"
-			[ -z "$1" ] || shift
-
-			if [ "$1" -a "$SIZE" = "-" ]; then
-				error "Only latest part can be unlimited!"
-				break
-			fi
-
-			echo "$NAME $SIZE"
-		done
-	} > "$PART_TABLE"
 
 	rk_partition_save
 }
@@ -407,8 +258,7 @@ rk_extra_part_cfg()
 {
 	[ "$RK_EXTRA_PARTITION_STR" ] || return 0
 
-	RK_EXTRA_PARTITION_ARRAY=( $(echo ${RK_EXTRA_PARTITION_STR//@/ } | \
-		xargs -n 1 | sort) )
+	RK_EXTRA_PARTITION_ARRAY=( $(echo ${RK_EXTRA_PARTITION_STR//@/ }) )
 	PART_IDX=$(( ${1:-1} - 1 ))
 	echo "${RK_EXTRA_PARTITION_ARRAY[$PART_IDX]}"
 }

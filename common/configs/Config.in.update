@@ -15,6 +15,8 @@ config RK_UPDATE_STORAGE
 	default "spinand" if RK_UPDATE_STORAGE_SPINAND
 	default "sata" if RK_UPDATE_STORAGE_SATA
 	default "pcie" if RK_UPDATE_STORAGE_PCIE
+	default "ufs" if RK_UPDATE_STORAGE_UFS
+	default "rvd" if RK_UPDATE_STORAGE_RVD
 
 choice
 	prompt "storage type"
@@ -43,6 +45,12 @@ config RK_UPDATE_STORAGE_SATA
 
 config RK_UPDATE_STORAGE_PCIE
 	bool "pcie"
+
+config RK_UPDATE_STORAGE_UFS
+	bool "ufs"
+
+config RK_UPDATE_STORAGE_RVD
+	bool "rvd"
 
 endchoice # storage type
 

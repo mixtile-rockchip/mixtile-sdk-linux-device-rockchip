@@ -7,7 +7,7 @@ config RK_DEBIAN_SUPPORTS
 		RK_CHIP_FAMILY = "rk3399" || RK_CHIP_FAMILY = "rk3399pro" || \
 		RK_CHIP_FAMILY = "rk3566_rk3568" || RK_CHIP_FAMILY = "rk3588" || \
 		RK_CHIP_FAMILY = "rk3562" || RK_CHIP_FAMILY = "rk3528" || \
-		RK_CHIP_FAMILY = "rk3576"
+		RK_CHIP_FAMILY = "rk3576" || RK_CHIP_FAMILY = "rv1126b"
 
 comment "Debian is not supported for this chip"
 	depends on !RK_DEBIAN_SUPPORTS
@@ -50,7 +50,7 @@ choice
 
 config RK_DEBIAN_ARM64
 	bool "arm64"
-	depends on !RK_CHIP_ARM32
+	depends on RK_KERNEL_ARM64
 
 config RK_DEBIAN_ARMHF
 	bool "armhf"
@@ -60,6 +60,10 @@ endchoice # rootfs arch
 config RK_DEBIAN_MIRROR
 	string "mirror source for APT"
 	default "mirrors.ustc.edu.cn"
+
+config RK_DEBIAN_LINUX_HEADERS
+	bool "install linux-headers"
+	default y
 
 endif # Debian
 endmenuconfig # Debian

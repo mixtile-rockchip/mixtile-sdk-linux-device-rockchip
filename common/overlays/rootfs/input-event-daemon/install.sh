@@ -13,7 +13,7 @@ fi
 
 OVERLAY_DIR="$(dirname "$(realpath "$0")")"
 
-message "Installing input-event-daemon to $TARGET_DIR..."
+message "Installing input-event-daemon service..."
 
 mkdir -p "$TARGET_DIR/etc" "$TARGET_DIR/lib" "$TARGET_DIR/usr/bin"
 

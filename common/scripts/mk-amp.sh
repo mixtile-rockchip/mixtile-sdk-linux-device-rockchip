@@ -66,7 +66,7 @@ build_hal()
 
 	cd "$RK_RTOS_BSP_DIR/common/hal/project/"${!1}"/GCC"
 
-	[ ! -n "$CC" ] || append=$CC
+	[ ! -n "$CC" ] || append="CROSS_COMPILE=$CC"
 	(
 		amp_touch_export FIRMWARE_CPU_BASE
 		amp_touch_export DRAM_SIZE
@@ -107,7 +107,7 @@ build_rtthread()
 	amp_touch_export SRAM_SIZE RTT_SRAM_SIZE
 	amp_touch_export SHMEM_BASE RTT_SHMEM_BASE
 	amp_touch_export SHMEM_SIZE RTT_SHMEM_SIZE
-	amp_touch_export CC RTT_EXEC_PATH
+	amp_touch_export RTT_EXEC RTT_EXEC_PATH
 
 	ROOT_PART_OFFSET=$(rk_partition_start root)
 	ROOT_PART_SIZE=$(rk_partition_size root)
@@ -181,16 +181,17 @@ build_images()
 		for p in FIRMWARE_CPU_BASE DRAM_SIZE SRAM_BASE SRAM_SIZE SHMEM_BASE \
 			 SHMEM_SIZE LINUX_RPMSG_BASE LINUX_RPMSG_SIZE CUR_CPU
 		do
-			echo $(env | grep -w $p && true)
+			echo $(set | grep -w "^$p" && true)
 		done
 
 		SYS=$(amp_get_string "$ITS_IMAGE" sys)
 		CORE=$(amp_get_string "$ITS_IMAGE" core)
 
-		# In RTT: 'CC' means the directory where the GCC tools are located.
-		# In HAL: 'CC' means the directory and the prefix of GCC.
 		CC=$(amp_get_string "$ITS_IMAGE" cc)
 		[ ! -n "$CC" ] || CC="${RK_SDK_DIR}/${CC}"
+
+		RTT_EXEC=$(amp_get_string "$ITS_IMAGE" rtt_exec)
+		[ ! -n "$RTT_EXEC" ] || RTT_EXEC="${RK_SDK_DIR}/${RTT_EXEC}"
 
 		SYS="${SYS}${CORE:+_$CORE}"
 
@@ -241,7 +242,7 @@ build_hook()
 		set +a
 	fi
 
-	CORE_NUMBERS=$(grep -wcE "amp[0-9]* {|mcu {" $ITS_FILE)
+	CORE_NUMBERS=$(grep -wcE "amp[0-9]* {|mcu {|hpmcu {" $ITS_FILE)
 	echo "CORE_NUMBERS=$CORE_NUMBERS"
 
 	EXT_SHARE=$(amp_get_node "$(cat $ITS_FILE)" share)
@@ -261,7 +262,7 @@ build_hook()
 		fi
 	fi
 
-	ITS_IMAGES=$(grep -wE "amp[0-9]* {|mcu {" $ITS_FILE | grep -oE "amp[0-9]*|mcu")
+	ITS_IMAGES=$(grep -wE "amp[0-9]* {|mcu {|hpmcu {" $ITS_FILE | grep -oE "amp[0-9]*|mcu")
 	build_images "$ITS_IMAGES"
 
 	cd "$RK_OUTDIR"

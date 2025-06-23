@@ -2,7 +2,7 @@
 
 menuconfig RK_ROOTFS_LOG_GUARDIAN
 	bool "log guardian (Truncate logs when disk is full)"
-	default y
+	default y if !RK_ROOTFS_LIGHTWEIGHT
 	help
 	  Truncate log files when no space left on device.
 

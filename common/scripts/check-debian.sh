@@ -6,10 +6,20 @@ RK_TOOLS_DIR="${RK_TOOLS_DIR:-$(realpath "$RK_SCRIPTS_DIR/../tools")}"
 RK_DEBIAN_ARCH="${RK_DEBIAN_ARCH:-arm64}"
 RK_DEBIAN_VERSION="${RK_DEBIAN_VERSION:-bookworm}"
 
-if ! ls $RK_SDK_DIR/debian/ubuntu-build-service/$RK_DEBIAN_VERSION-desktop-$RK_DEBIAN_ARCH >/dev/null 2>&1; then
+SUPPORTED_VERSION=$(ls $RK_SDK_DIR/debian/ubuntu-build-service/ 2>&1 | \
+	grep desktop-$RK_DEBIAN_ARCH | cut -d'-' -f1)
+
+if [ -z "$SUPPORTED_VERSION" ]; then
 	echo -e "\e[35m"
-	echo "Current SDK doesn't support Debian($RK_DEBIAN_VERSION) for $RK_DEBIAN_ARCH"
-	echo "Please try other Debian version."
+	echo "Current SDK doesn't support Debian!"
+	echo -e "\e[0m"
+	exit 1
+fi
+
+if ! echo $SUPPORTED_VERSION | grep -wq $RK_DEBIAN_VERSION; then
+	echo -e "\e[35m"
+	echo "Current SDK doesn't support Debian($RK_DEBIAN_VERSION)!"
+	echo "Available Debian versions: $SUPPORTED_VERSION"
 	echo -e "\e[0m"
 	exit 1
 fi
@@ -69,8 +79,7 @@ case "$RK_DEBIAN_ARCH" in
 		exit 1 ;;
 esac
 
-"$RK_SCRIPTS_DIR/check-package.sh" "qemu-$QEMU_ARCH-static(qemu-user-static)" \
-	qemu-$QEMU_ARCH-static qemu-user-static
+"$RK_SCRIPTS_DIR/check-package.sh" qemu-$QEMU_ARCH-static qemu-user-static
 
 if ! [ -r /proc/sys/fs/binfmt_misc/qemu-$QEMU_ARCH ]; then
 	echo -e "\e[35m"

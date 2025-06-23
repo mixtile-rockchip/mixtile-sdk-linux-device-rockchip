@@ -1,4 +1,4 @@
-#!/bin/sh -e
+#!/bin/bash -e
 
 for i in $(seq 1 3); do
 	echo -n "$(hostname -s)'s password: "

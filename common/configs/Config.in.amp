@@ -14,6 +14,7 @@ config RK_AMP_ARCH
 	string
 	default "arm" if RK_AMP_ARM32
 	default "arm64" if RK_AMP_ARM64
+	default "riscv" if RK_AMP_RISCV
 
 choice
 	prompt "arch"
@@ -25,6 +26,9 @@ config RK_AMP_ARM64
 
 config RK_AMP_ARM32
 	bool "arm"
+
+config RK_AMP_RISCV
+	bool "riscv"
 
 endchoice # AMP arch
 

@@ -112,7 +112,7 @@ do_build_updateimg()
 		exit 1
 	fi
 
-	TAG=RK$(hexdump -s 21 -n 4 -e '4 "%c"' MiniLoaderAll.bin | rev)
+	TAG=RK$(dd if=MiniLoaderAll.bin bs=1 count=4 skip=21 status=none | rev)
 	"$RK_PACK_TOOL_DIR/afptool" -pack ./ update.raw.img
 	"$RK_PACK_TOOL_DIR/rkImageMaker" -$TAG MiniLoaderAll.bin \
 		update.raw.img update.img -os_type:androidos \

@@ -13,6 +13,6 @@ OVERLAY_DIR="$(dirname "$(realpath "$0")")"
 cd "$OVERLAY_DIR"
 
 for f in *.tar; do
-	message "Installing extra font(${f%.tar}) to $TARGET_DIR..."
+	message "Installing extra font(${f%.tar})..."
 	tar xf "$f" -C "$TARGET_DIR"
 done

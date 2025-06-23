@@ -316,7 +316,9 @@ do_run_hooks()
 		# Ignore unrelated hooks
 		hook_check "$hook" "$@" || continue
 
-		if ! "$hook" "$@"; then
+		if "$hook" "$@"; then
+			continue
+		else
 			HOOK_RET=$?
 			err_handler $HOOK_RET \
 				"${FUNCNAME[0]} $*" "$hook $*"
@@ -445,7 +447,7 @@ parse_scripts()
 
 	if [ ! -r "$RK_MAKE_USAGE" ] || \
 		[ "$(find "$RK_SCRIPTS_DIR" "$RK_CHIP_DIR" "$RK_CHIP_DIR/" \
-			-cnewer "$RK_MAKE_USAGE")" ]; then
+			-cnewer "$RK_MAKE_USAGE" 2>/dev/null)" ]; then
 		{
 			TEMP_FILE=$(mktemp -u)
 
@@ -465,7 +467,7 @@ parse_scripts()
 
 	if [ ! -r "$RK_PARSED_CMDS" ] || \
 		[ "$(find "$RK_SCRIPTS_DIR" "$RK_CHIP_DIR" "$RK_CHIP_DIR/" \
-			-cnewer "$RK_PARSED_CMDS")" ]; then
+			-cnewer "$RK_PARSED_CMDS" 2>/dev/null)" ]; then
 		{
 			TEMP_FILE=$(mktemp -u)
 			{

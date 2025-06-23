@@ -1,1 +1,1 @@
-../overlays/yocto/install.sh
+../overlays/yocto/default/install.sh

@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Prefer using buildroot host tools for compatible.
-if [ -n "$RK_BUILDROOT_CFG" ]; then
-    HOST_DIR="$RK_SDK_DIR/buildroot/output/$RK_BUILDROOT_CFG/host"
+HOST_DIR="$RK_SDK_DIR/buildroot/output/latest/host"
+if [ -d "$HOST_DIR" ]; then
     export PATH=$HOST_DIR/usr/sbin:$HOST_DIR/usr/bin:$HOST_DIR/sbin:$HOST_DIR/bin:$PATH
     echo "Using host tools in $HOST_DIR (except for mke2fs)"
 else
@@ -276,7 +276,8 @@ case $FS_TYPE in
             fi
         fi
 
-        mksquashfs $SRC_DIR $TARGET -noappend $SQUASHFS_COMP || exit 1
+        mksquashfs $SRC_DIR $TARGET -noappend \
+            ${SQUASHFS_COMP:-"-no-compression"} || exit 1
         ;;
     jffs2)
         [ $SIZE_KB -eq 0 ] || fatal "$FS_TYPE: fixed size not supported."

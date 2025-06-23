@@ -24,7 +24,7 @@ export RK_KERNEL_TOOLCHAIN="$(get_toolchain kernel "$RK_KERNEL_ARCH")"
 export KMAKE="make -C "$RK_SDK_DIR/kernel/" -j$(( $(nproc) + 1 )) \
 	CROSS_COMPILE=$RK_KERNEL_TOOLCHAIN ARCH=$RK_KERNEL_ARCH"
 
-if [ -z "$DRY_RUN" ] && [ "$RK_SUDO_ROOT" ]; then
+if [ "$POST_OS" = debian ] && [ "$RK_SUDO_ROOT" ]; then
 	# Sudo to source code owner for Debian's post stage
 	export KMAKE="sudo -u #$RK_OWNER_UID $KMAKE"
 fi

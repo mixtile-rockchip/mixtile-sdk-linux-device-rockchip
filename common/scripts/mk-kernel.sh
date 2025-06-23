@@ -28,6 +28,10 @@ do_make_kernel_config()
 		BASIC_CFG_FRAGMENTS="$BASIC_CFG_FRAGMENTS $cfg"
 	done
 
+	if [ -z "$RK_KERNEL_CFG_FRAGMENTS_BASIC" ]; then
+		unset BASIC_CFG_FRAGMENTS
+	fi
+
 	run_command $KMAKE $KERNEL_CFG $BASIC_CFG_FRAGMENTS $KERNEL_CFG_FRAGMENTS
 }
 
@@ -88,7 +92,7 @@ do_build()
 					"kernel/resource.img"
 			fi
 
-			if [ "$RK_SECURITY" ]; then
+			if [ "$RK_SECURITY" ] && [ -z "$RK_SECURITY_REMOTE_SIGN" ]; then
 				if [ "$RK_SECURITY_CHECK_BASE" ]; then
 					run_command \
 						"$RK_SCRIPTS_DIR/mk-security.sh" \

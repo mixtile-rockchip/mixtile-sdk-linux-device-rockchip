@@ -20,7 +20,7 @@ install_adbd()
 {
 	[ -n "$RK_USB_ADBD" ] || return 0
 
-	message "Installing adbd..."
+	message "Installing ADBD..."
 
 	if [ -e "$TARGET_DIR/usr/bin/adbd" ] && \
 		! grep -q ADBD_SHELL "$TARGET_DIR/usr/bin/adbd"; then
@@ -134,12 +134,7 @@ usb_funcs()
 	} | xargs
 }
 
-message "Installing USB gadget to $TARGET_DIR..."
-
-cd "$RK_SDK_DIR"
-
-mkdir -p "$TARGET_DIR/etc" "$TARGET_DIR/lib" "$TARGET_DIR/usr/bin" \
-	"$TARGET_DIR/usr/lib"
+message "Installing USB gadget service..."
 
 message "USB gadget functions: $(usb_funcs)"
 mkdir -p "$TARGET_DIR/etc/profile.d"
@@ -159,17 +154,11 @@ install_mtp
 install_ums
 install_uvc
 
-mkdir -p "$TARGET_DIR/lib/udev/rules.d"
-install -m 0644 external/rkscript/61-usbdevice.rules \
-	"$TARGET_DIR/lib/udev/rules.d/"
+$RK_RSYNC "$OVERLAY_DIR/usr" "$OVERLAY_DIR/lib" "$TARGET_DIR/"
 
-install -m 0755 external/rkscript/usbdevice "$TARGET_DIR/usr/bin/"
-
-message "Installing USB services..."
-
-install_sysv_service external/rkscript/S*usbdevice.sh 5 4 3 2 K01 0 1 6
-install_busybox_service external/rkscript/S*usbdevice.sh
-install_systemd_service external/rkscript/usbdevice.service
+install_sysv_service "$OVERLAY_DIR/S50usbdevice.sh" 5 4 3 2 K01 0 1 6
+install_busybox_service "$OVERLAY_DIR/S50usbdevice.sh"
+install_systemd_service "$OVERLAY_DIR/usbdevice.service"
 
 mkdir -p "$TARGET_DIR/etc/usbdevice.d"
 for hook in $RK_USB_HOOKS; do
