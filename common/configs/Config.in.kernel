@@ -35,10 +35,15 @@ config RK_KERNEL_CFG
 	default "px30_linux_defconfig" if RK_CHIP = "px30" || \
 		RK_CHIP = "rk3326" || RK_CHIP_FAMILY = "rk3358"
 	default "rv1126_defconfig" if RK_CHIP_FAMILY = "rv1126_rv1109"
+	default "rv1126b_defconfig" if RK_CHIP_FAMILY = "rv1126b"
 	default "rk1806_linux_defconfig" if RK_CHIP = "rk1806"
 	default "rk1808_linux_defconfig" if RK_CHIP = "rk1808"
 	default "rk3308_linux_defconfig" if RK_CHIP_FAMILY = "rk3308"
 	default "rockchip_linux_defconfig"
+
+config RK_KERNEL_CFG_FRAGMENTS_BASIC
+	bool "basic defconfig fragments"
+	default y
 
 config RK_KERNEL_CFG_FRAGMENTS
 	string "defconfig fragments"

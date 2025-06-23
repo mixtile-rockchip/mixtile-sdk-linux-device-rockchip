@@ -132,14 +132,14 @@ EOF
 		cat << EOF
 	default "empty" if RK_CHIP_FAMILY = "rk3308"
 	default "normal"
-	help
-	  Source dirs, each of them can be either of absolute path(/<dir>) or
-	  relative to <RK_CHIP_DIR>|<RK_EXTRA_PARTS_DIR> or relative to
-	  (<RK_CHIP_DIR>|<RK_EXTRA_PARTS_DIR>)/<partition name>.
 EOF
 	fi
 
 	cat <<EOF
+	help
+	  Source dirs, each of them can be either of absolute path(/<dir>) or
+	  relative to <RK_CHIP_DIR>|<RK_EXTRA_PARTS_DIR> or relative to
+	  (<RK_CHIP_DIR>|<RK_EXTRA_PARTS_DIR>)/<partition name>.
 
 config RK_EXTRA_PARTITION_${i}_SIZE
 	string "image size (size(M|K)|auto(0)|max)"

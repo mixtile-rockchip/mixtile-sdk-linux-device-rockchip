@@ -56,6 +56,44 @@ build_buildroot()
 	finish_build build_buildroot $@
 }
 
+gen_yocto_conf()
+{
+	echo "include include/common.conf"
+	echo "include include/debug.conf"
+	echo "include include/audio.conf"
+
+	if [ "$RK_YOCTO_MULTIMEDIA" ]; then
+		echo "include include/multimedia.conf"
+	fi
+
+	if [ "$RK_WIFIBT" ]; then
+		echo "include include/wifibt.conf"
+	fi
+
+	echo
+	echo "MACHINE = \"$RK_YOCTO_MACHINE\""
+
+	if [ "$RK_YOCTO_DISPLAY_PLATFORM_NONE" ]; then
+		return 0
+	fi
+
+	echo
+	echo "include include/display.conf"
+
+	if [ "$RK_CHIP_HAS_GPU" ]; then
+		echo "include include/glmark2.conf"
+
+		if [ "$RK_YOCTO_CHROMIUM" ]; then
+			echo "include include/browser.conf"
+		fi
+	elif [ "$RK_YOCTO_DISPLAY_PLATFORM_WAYLAND" ]; then
+		echo "PACKAGECONFIG:append:pn-weston-init = \" use-pixman\""
+	fi
+
+	echo
+	echo "DISPLAY_PLATFORM := \"$RK_YOCTO_DISPLAY_PLATFORM\""
+}
+
 build_yocto()
 {
 	check_config RK_YOCTO || false
@@ -95,6 +133,8 @@ build_yocto()
 
 		echo
 
+		echo "PREFERRED_PROVIDER_virtual/bootloader = \"u-boot-dummy\""
+		echo "PREFERRED_PROVIDER_u-boot = \"u-boot-dummy\""
 		echo "PREFERRED_PROVIDER_virtual/kernel := \"linux-dummy\""
 		echo "LINUXLIBCVERSION := \"$RK_KERNEL_VERSION_RAW-custom%\""
 		echo "OLDEST_KERNEL := \"$RK_KERNEL_VERSION_RAW\""
@@ -113,37 +153,14 @@ build_yocto()
 			return 1
 		fi
 
-		echo "include $RK_CHIP_DIR/$RK_YOCTO_CFG" > build/conf/local.conf
+		ln -rsf "$RK_CHIP_DIR/$RK_YOCTO_CFG" build/conf/custom.conf
+		echo "include custom.conf" > build/conf/local.conf
 
 		message "=========================================="
 		message "          Start building for custom $RK_YOCTO_CFG"
 		message "=========================================="
 	else
-		{
-			echo "include include/common.conf"
-			echo "include include/debug.conf"
-			echo "include include/display.conf"
-			echo "include include/multimedia.conf"
-			echo "include include/audio.conf"
-
-			if [ "$RK_WIFIBT" ]; then
-				echo "include include/wifibt.conf"
-			fi
-
-			if [ "$RK_CHIP_HAS_GPU" ]; then
-				if [ "$RK_YOCTO_CHROMIUM" ]; then
-					echo "include include/browser.conf"
-				fi
-			elif [ "$RK_YOCTO_DISPLAY_PLATFORM" = wayland ]; then
-				echo "PACKAGECONFIG:append:pn-weston-init = \" use-pixman\""
-			fi
-
-			echo
-			echo "DISPLAY_PLATFORM := \"$RK_YOCTO_DISPLAY_PLATFORM\""
-
-			echo
-			echo "MACHINE = \"$RK_YOCTO_MACHINE\""
-		} > build/conf/local.conf
+		gen_yocto_conf > build/conf/local.conf
 
 		message "=========================================="
 		message "          Start building for machine($RK_YOCTO_MACHINE)"
@@ -160,9 +177,13 @@ build_yocto()
 		message "          With extra config:($RK_YOCTO_EXTRA_CFG)"
 		message "=========================================="
 
-		{
-			echo "include $RK_CHIP_DIR/$RK_YOCTO_EXTRA_CFG"
-		} >> build/conf/local.conf
+		if [ ! -r "$RK_CHIP_DIR/$RK_YOCTO_EXTRA_CFG" ]; then
+			error "$RK_CHIP_DIR/$RK_YOCTO_EXTRA_CFG not exist!"
+			return 1
+		fi
+
+		ln -rsf "$RK_CHIP_DIR/$RK_YOCTO_EXTRA_CFG" build/conf/extra.conf
+		echo "include extra.conf" >> build/conf/local.conf
 	fi
 
 
@@ -363,8 +384,9 @@ build_hook()
 		"$RK_SCRIPTS_DIR/mk-ramboot.sh" "$ROOTFS_DIR" \
 			"$IMAGE_DIR/$ROOTFS_IMG" "$RK_BOOT_FIT_ITS"
 		ln -rsf "$ROOTFS_DIR/ramboot.img" "$RK_FIRMWARE_DIR/boot.img"
-	elif [ "$RK_SECURITY_CHECK_SYSTEM_ENCRYPTION" -o \
-		"$RK_SECURITY_CHECK_SYSTEM_VERITY" ]; then
+	elif [ "$RK_SECURITY_CHECK_SYSTEM_ENCRYPTION" ] || \
+	     [ "$RK_SECURITY_CHECK_SYSTEM_VERITY" ] || \
+	     [ "$RK_SECURITY_CHECK_SYSTEM_ENCRYPTION_BY_OPENSSL" ]; then
 		if [ "$RK_ROOTFS_TYPE" == "ubi" ]; then
 			ln -rsf "${RK_OUTDIR}/security/security-system.ubi" \
 				"$RK_FIRMWARE_DIR/rootfs.img"

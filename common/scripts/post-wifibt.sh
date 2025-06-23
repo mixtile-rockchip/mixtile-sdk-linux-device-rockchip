@@ -4,6 +4,24 @@ POST_ROOTFS_ONLY=1
 
 source "${RK_POST_HELPER:-$(dirname "$(realpath "$0")")/post-helper}"
 
+check_bt()
+{
+	if [ "$RK_WIFIBT_BT_DAEMON_DISABLED" ]; then
+		return 1
+	fi
+
+	if [ "$RK_WIFIBT_BT_DAEMON_DEFAULT" ]; then
+		KERNEL_MAJOR=${RK_KERNEL_VERSION_RAW%.*}
+		KERNEL_MINOR=${RK_KERNEL_VERSION_RAW#*.}
+		if [ "$KERNEL_MAJOR" -eq 6 ] && [ "$KERNEL_MINOR" -gt 1 ]; then
+			notice "Using BT drivers for kernel >6.1"
+			return 1
+		fi
+	fi
+
+	return 0
+}
+
 build_wifibt()
 {
 	check_config RK_KERNEL RK_WIFIBT RK_WIFIBT_MODULES || return 0
@@ -15,7 +33,7 @@ build_wifibt()
 
 	RKWIFIBT_DIR="$RK_SDK_DIR/external/rkwifibt"
 
-	echo -e "\e[36m"
+	echo -ne "\e[35m"
 	if find "$RKWIFIBT_DIR"/* -not -user $RK_OWNER_UID | grep ""; then
 		error "Found files owned by other users!"
 		error "$RKWIFIBT_DIR is dirty for building!"
@@ -26,7 +44,7 @@ build_wifibt()
 		error "sudo chown -h -R $RK_OWNER:$RK_OWNER $RKWIFIBT_DIR/"
 		exit 1
 	fi
-	echo -e "\e[0m"
+	echo -ne "\e[0m"
 
 	# Make sure that the kernel is ready
 	if [ ! -r kernel/include/generated/asm-offsets.h ]; then
@@ -159,6 +177,27 @@ build_wifibt()
 		fi
 	fi
 
+	if [[ "$RK_WIFIBT_MODULES" = "AIC8800_SDIO" ]];then
+		echo "building AIC8800 SDIO"
+		$KMAKE M=$RKWIFIBT_DIR/drivers/aic8800_sdio
+	fi
+
+	if [[ "$RK_WIFIBT_MODULES" = "AIC8800_USB" ]];then
+		echo "building AIC8800 USB"
+		$KMAKE M=$RKWIFIBT_DIR/drivers/aic8800_usb
+		$KMAKE M=$RKWIFIBT_DIR/drivers/aic_btusb
+	fi
+
+	if [[ "$RK_WIFIBT_MODULES" = "AIC8800_PCIE" ]];then
+		echo "building AIC8800 PCIE"
+		$KMAKE M=$RKWIFIBT_DIR/drivers/aic8800_pcie
+	fi
+
+	if [[ "$RK_WIFIBT_MODULES" = "AIC8800X2_PCIE" ]];then
+		echo "building AIC8800X2 PCIE"
+		$KMAKE M=$RKWIFIBT_DIR/drivers/aic8800d80x2_pcie
+	fi
+
 	if [[ "$RK_WIFIBT_MODULES" = "CYW4354" ]];then
 		echo "building CYW4354"
 		ln -sf chips/CYW4354_Makefile \
@@ -250,12 +289,10 @@ build_wifibt()
 		$KMAKE M=$RKWIFIBT_DIR/drivers/rtl8852be modules
 	fi
 
-	if ! [[ "$RK_KERNEL_VERSION_RAW" = "6.1" ]];then
-		echo "building realtek bt drivers"
-		$KMAKE M=$RKWIFIBT_DIR/drivers/bluetooth_uart_driver
-		if [ -n "$WIFI_USB" ]; then
-			$KMAKE M=$RKWIFIBT_DIR/drivers/bluetooth_usb_driver
-		fi
+	echo "building realtek bt drivers"
+	$KMAKE M=$RKWIFIBT_DIR/drivers/bluetooth_uart_driver
+	if [ -n "$WIFI_USB" ]; then
+		$KMAKE M=$RKWIFIBT_DIR/drivers/bluetooth_usb_driver
 	fi
 
 	mkdir -p $TARGET_DIR/etc/ $TARGET_DIR/usr/bin/ \
@@ -268,11 +305,7 @@ build_wifibt()
 	ln -rsf "$TARGET_DIR/lib/firmware" "$TARGET_DIR/system/etc/firmware"
 	ln -rsf "$TARGET_DIR/system" "$TARGET_DIR/vendor"
 
-	echo "installing tools and scripts"
-	ensure_tools "$TARGET_DIR/usr/bin/brcm_patchram_plus1" \
-		"$TARGET_DIR/usr/bin/dhd_priv" \
-		"$TARGET_DIR/usr/bin/rtk_hciattach"
-
+	echo "installing scripts"
 	install -m 0655 $RKWIFIBT_DIR/conf/* "$TARGET_DIR/etc/"
 	install -m 0755 $RKWIFIBT_DIR/scripts/* "$TARGET_DIR/usr/bin/"
 	rm -f "$TARGET_DIR/usr/bin/wifibt-sleep-hook.sh"
@@ -284,6 +317,26 @@ build_wifibt()
 	if [ "$RK_ROOTFS_PREBUILT_TOOLS" ]; then
 		echo "installing prebuilt debug tools"
 		install -m 0755 $RKWIFIBT_DIR/bin/arm/* "$TARGET_DIR/usr/bin/"
+	fi
+
+	if check_bt; then
+		if ! grep -wq wireless-bluetooth "$RK_KERNEL_DTB"; then
+			echo -e "\e[35m"
+			echo "Missing wireless-bluetooth in $RK_KERNEL_DTS!"
+			echo -e "\e[0m"
+			exit 1
+		fi
+
+		echo "installing BT daemons"
+		ensure_tools "$TARGET_DIR/usr/bin/brcm_patchram_plus1" \
+			"$TARGET_DIR/usr/bin/dhd_priv" \
+			"$TARGET_DIR/usr/bin/rtk_hciattach"
+	else
+		notice "Disabling BT daemon..."
+		sed -i "/^start_bt()/ {
+			n
+			a\\\treturn 0 # BT is not available!
+		}" "$TARGET_DIR/usr/bin/wifibt-init.sh"
 	fi
 
 	if [[ "$RK_WIFIBT_MODULES" = "ALL_CY" ]];then
@@ -338,6 +391,13 @@ build_wifibt()
 				$TARGET_DIR/lib/firmware/rtlbt/
 			cp $RKWIFIBT_DIR/firmware/realtek/$RK_WIFIBT_MODULES/* \
 				$TARGET_DIR/lib/firmware/
+
+			cp $RKWIFIBT_DIR/drivers/bluetooth_uart_driver/hci_uart.ko \
+				$TARGET_DIR/lib/modules/
+			if [ -n "$WIFI_USB" ]; then
+				cp $RKWIFIBT_DIR/drivers/bluetooth_usb_driver/rtk_btusb.ko \
+					$TARGET_DIR/lib/modules/
+			fi
 		else
 			echo "INFO: $RK_WIFIBT_MODULES isn't bluetooth?"
 		fi
@@ -346,6 +406,13 @@ build_wifibt()
 
 		cp $RKWIFIBT_DIR/drivers/$WIFI_KO_DIR/*.ko \
 			$TARGET_DIR/lib/modules/
+
+		cp $RKWIFIBT_DIR/drivers/bluetooth_uart_driver/hci_uart.ko \
+			$TARGET_DIR/lib/modules/
+		if [ -n "$WIFI_USB" ]; then
+			cp $RKWIFIBT_DIR/drivers/bluetooth_usb_driver/rtk_btusb.ko \
+				$TARGET_DIR/lib/modules/
+		fi
 	fi
 
 	if [[ "$RK_WIFIBT_MODULES" =~ "RK" ]];then
@@ -373,6 +440,46 @@ build_wifibt()
 		cp $RKWIFIBT_DIR/firmware/broadcom/$RK_WIFIBT_MODULES/bt/* \
 			$TARGET_DIR/lib/firmware/
 		cp $RKWIFIBT_DIR/drivers/bcmdhd/*.ko $TARGET_DIR/lib/modules/
+	fi
+
+	if [[ "$RK_WIFIBT_MODULES" =~ "AIC8800_SDIO" ]];then
+		echo "Install AIC file to rootfs"
+		cp $RKWIFIBT_DIR/firmware/aic/sdio/*/* \
+			$TARGET_DIR/lib/firmware/
+		cp $RKWIFIBT_DIR/drivers/aic8800_sdio/aic8800_btlpm/*.ko \
+			$TARGET_DIR/lib/modules/
+		cp $RKWIFIBT_DIR/drivers/aic8800_sdio/aic8800_fdrv/*.ko \
+			$TARGET_DIR/lib/modules/
+		cp $RKWIFIBT_DIR/drivers/aic8800_sdio/aic8800_bsp/*.ko \
+			$TARGET_DIR/lib/modules/
+	fi
+
+	if [[ "$RK_WIFIBT_MODULES" =~ "AIC8800X2_PCIE" ]];then
+		echo "Install AIC file to rootfs"
+		cp $RKWIFIBT_DIR/firmware/aic/pcie/aic8800D80X2/* \
+			$TARGET_DIR/lib/firmware/
+		cp $RKWIFIBT_DIR/drivers/aic8800_pcie/aic8800_fdrv/*.ko \
+			$TARGET_DIR/lib/modules/
+	fi
+
+	if [[ "$RK_WIFIBT_MODULES" =~ "AIC8800_PCIE" ]];then
+		echo "Install AIC file to rootfs"
+		cp $RKWIFIBT_DIR/firmware/aic/pcie/aic8800D80/* \
+			$TARGET_DIR/lib/firmware/
+		cp $RKWIFIBT_DIR/drivers/aic8800_pcie/aic8800_fdrv/*.ko \
+			$TARGET_DIR/lib/modules/
+	fi
+
+	if [[ "$RK_WIFIBT_MODULES" =~ "AIC8800_USB" ]];then
+		echo "Install AIC file to rootfs"
+		cp $RKWIFIBT_DIR/firmware/aic/usb/*/* \
+			$TARGET_DIR/lib/firmware/
+		cp $RKWIFIBT_DIR/drivers/aic8800_usb/aic_load_fw/*.ko \
+			$TARGET_DIR/lib/modules/
+		cp $RKWIFIBT_DIR/drivers/aic8800_usb/aic8800_fdrv/*.ko \
+			$TARGET_DIR/lib/modules/
+		cp $RKWIFIBT_DIR/drivers/aic_btusb/*.ko \
+			$TARGET_DIR/lib/modules/
 	fi
 
 	# Install boot services

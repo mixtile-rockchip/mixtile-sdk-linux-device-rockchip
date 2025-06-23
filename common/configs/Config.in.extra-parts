@@ -327,6 +327,10 @@ endif # !builtin
 
 config RK_EXTRA_PARTITION_3_SRC
 	string "source dirs"
+	help
+	  Source dirs, each of them can be either of absolute path(/<dir>) or
+	  relative to <RK_CHIP_DIR>|<RK_EXTRA_PARTS_DIR> or relative to
+	  (<RK_CHIP_DIR>|<RK_EXTRA_PARTS_DIR>)/<partition name>.
 
 config RK_EXTRA_PARTITION_3_SIZE
 	string "image size (size(M|K)|auto(0)|max)"
@@ -430,6 +434,10 @@ endif # !builtin
 
 config RK_EXTRA_PARTITION_4_SRC
 	string "source dirs"
+	help
+	  Source dirs, each of them can be either of absolute path(/<dir>) or
+	  relative to <RK_CHIP_DIR>|<RK_EXTRA_PARTS_DIR> or relative to
+	  (<RK_CHIP_DIR>|<RK_EXTRA_PARTS_DIR>)/<partition name>.
 
 config RK_EXTRA_PARTITION_4_SIZE
 	string "image size (size(M|K)|auto(0)|max)"
@@ -533,6 +541,10 @@ endif # !builtin
 
 config RK_EXTRA_PARTITION_5_SRC
 	string "source dirs"
+	help
+	  Source dirs, each of them can be either of absolute path(/<dir>) or
+	  relative to <RK_CHIP_DIR>|<RK_EXTRA_PARTS_DIR> or relative to
+	  (<RK_CHIP_DIR>|<RK_EXTRA_PARTS_DIR>)/<partition name>.
 
 config RK_EXTRA_PARTITION_5_SIZE
 	string "image size (size(M|K)|auto(0)|max)"

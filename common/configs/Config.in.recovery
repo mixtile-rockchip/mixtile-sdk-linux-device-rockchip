@@ -62,5 +62,59 @@ config RK_RECOVERY_FIT_ITS
 
 endif # FIT image
 
+config RK_RECOVERY_CONSOLE_LOG
+	bool "redirect log output to serial console"
+
+menuconfig RK_RECOVERY_ADBD
+	bool "Android Debug Bridge Daemon (adbd)"
+
+if RK_RECOVERY_ADBD
+
+config RK_RECOVERY_ADBD_VID
+	hex "vendor id"
+	default 0x2207
+
+config RK_RECOVERY_ADBD_PID
+	hex "product id"
+	default 0
+
+config RK_RECOVERY_ADBD_FW_VER
+	hex "firmware version"
+	default 0x0310
+
+config RK_RECOVERY_ADBD_MANUFACTURER
+	string "manufacturer"
+	default "Rockchip"
+
+config RK_RECOVERY_ADBD_PRODUCT
+	string "product"
+	default "rk3xxx"
+
+config RK_RECOVERY_ADBD_TCP_PORT
+	int "TCP port"
+	default 5555
+
+config RK_RECOVERY_ADBD_SHELL
+	string "login shell"
+	default "/bin/bash"
+
+menuconfig RK_RECOVERY_ADBD_SECURE
+	bool "access control"
+
+if RK_RECOVERY_ADBD_SECURE
+
+config RK_RECOVERY_ADBD_PASSWORD
+	string "password"
+
+config RK_RECOVERY_ADBD_KEYS
+	string "Android public keys"
+	default "~/.android/adbkey.pub" if RK_RECOVERY_ADBD_PASSWORD = ""
+
+endif # secure
+endmenuconfig # secure
+
+endif # adbd
+endmenuconfig # adbd
+
 endif # Recovery
 endmenuconfig # Recovery

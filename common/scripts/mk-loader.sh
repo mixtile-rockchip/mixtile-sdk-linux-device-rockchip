@@ -18,6 +18,9 @@ build_uboot()
 	[ ! "$RK_SECURITY_BURN_KEY" ] || \
 		UARGS="$UARGS ${RK_SECUREBOOT_FIT:+--burn-key-hash}"
 
+	[ ! "$RK_SECURITY_REMOTE_SIGN" ] || \
+		UARGS="$UARGS ${RK_SECUREBOOT_FIT:+--no-sign}"
+
 	run_command cd u-boot
 
 	run_command $UMAKE $RK_UBOOT_CFG $RK_UBOOT_CFG_FRAGMENTS $UARGS

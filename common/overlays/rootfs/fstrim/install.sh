@@ -13,7 +13,7 @@ fi
 
 OVERLAY_DIR="$(dirname "$(realpath "$0")")"
 
-message "Installing fstrim service to $TARGET_DIR..."
+message "Installing fstrim service..."
 
 cp -f "$OVERLAY_DIR/S99fstrim" "$RK_OUTDIR/"
 sed -i "s/\(INTERVAL=\).*/\1$RK_ROOTFS_FSTRIM_INTERVAL/" "$RK_OUTDIR/S99fstrim"

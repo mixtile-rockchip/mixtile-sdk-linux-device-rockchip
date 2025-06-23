@@ -134,8 +134,6 @@ case "$1" in
 		;;
 esac
 
-echo "$POST_OS_DISALLOWED" | grep -wvq $POST_OS || exit 0
-
 unset POST_ROOTFS
 case "$POST_OS" in
 	buildroot | debian | yocto) POST_ROOTFS=1 ;;
@@ -152,7 +150,6 @@ if [ -e "$TARGET_DIR/etc/init.d/rcS" ]; then
 	fi
 fi
 if [ -d "$TARGET_DIR/etc/systemd/system/" ]; then
-	mkdir -p "$TARGET_DIR/lib/systemd/system/"
 	POST_INIT="${POST_INIT:+$POST_INIT }systemd"
 fi
 export POST_INIT="${POST_INIT:-none}"
@@ -173,6 +170,34 @@ for t in $POST_INIT; do
 		systemd) export POST_INIT_SYSTEMD=1 ;;
 	esac
 done
+
+for d in lib bin sbin; do
+	case "$(realpath "$TARGET_DIR/$d")" in
+		# Should be relative link
+		"/$d" | "/usr/$d" ) rm -rf "$TARGET_DIR/$d" ;;
+	esac
+
+	# Prefer usrmerge
+	if [ ! -d "$TARGET_DIR/$d" ]; then
+		rm -rf "$TARGET_DIR/$d"
+		mkdir -p "$TARGET_DIR/usr/$d"
+		ln -sf usr/$d "$TARGET_DIR/$d"
+	fi
+done
+
+# For developing usage
+cleanup_symlinks() {
+	if [ -e "$TARGET_DIR/etc/os-release" ]; then
+		return 0
+	fi
+
+	for d in lib bin sbin; do
+		if [ -L "$TARGET_DIR/$d" ]; then
+			rm "$TARGET_DIR/$d"
+		fi
+	done
+}
+trap cleanup_symlinks EXIT
 
 if basename "$(realpath "$0")" | grep -q "^post-"; then
 	notice "Running $(basename "$0") for $TARGET_DIR ($POST_OS init=$POST_INIT)..."

@@ -6,6 +6,22 @@ menuconfig RK_WIFIBT
 
 if RK_WIFIBT
 
+choice
+	prompt "Userspace BT daemon"
+
+config RK_WIFIBT_BT_DAEMON_DEFAULT
+	bool "auto"
+	help
+	  Disabled for kernel version >6.1.
+
+config RK_WIFIBT_BT_DAEMON_ENABLED
+	bool "enable"
+
+config RK_WIFIBT_BT_DAEMON_DISABLED
+	bool "disable"
+
+endchoice # BT daemon
+
 config RK_WIFIBT_MODULES
 	string
 	default "ALL_AP" if RK_WIFIBT_RTK_AP

@@ -2,7 +2,7 @@ Prebuilt tools (static linked)
 ==============================
 
 Prebuilt from Rockchip buildroot 2021 SDK with kernel 6.1:
-60666e4019 gptfdisk: Support forcing static build
+7310c257b4 linux-tool-perf: Fix target platform error for aarch64 static build
 
 Using rockchip_{rk3036,rk3326_64}_defconfig with addition configs:
 BR2_GCC_VERSION_11_X=y
@@ -80,9 +80,6 @@ BR2_PACKAGE_RKWIFIBT_STATIC=y
 BR2_PACKAGE_STRACE=y
 BR2_PACKAGE_STRACE_STATIC=y
 
-BR2_PACKAGE_LIBTELNET=y
-BR2_PACKAGE_LIBTELNET_STATIC=y
-
 BR2_PACKAGE_INOTIFY_TOOLS=y
 BR2_PACKAGE_INOTIFY_TOOLS_STATIC=y
 
@@ -120,6 +117,6 @@ For building kmsgrab:
 
 External sources:
 1/ rkwifibt:
-ee9539a wifibt-init.sh: Fix error when wlan0 been renamed
+05e3445 wifi: rtl8821cs: support kernel 6.1
 2/ rktoolkit:
 bc1d85d vendor_storage: fixed hex string begin with 00, get wrong string length when read

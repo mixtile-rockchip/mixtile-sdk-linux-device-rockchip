@@ -2,7 +2,7 @@
 
 source "${RK_POST_HELPER:-$(dirname "$(realpath "$0")")/post-helper}"
 
-FSTAB="$TARGET_DIR/etc/fstab"
+FSTAB="etc/fstab"
 
 fixup_root()
 {
@@ -70,7 +70,9 @@ fixup_device_part()
 
 message "Fixing up /etc/fstab..."
 
-mkdir -p "$TARGET_DIR/etc"
+cd "$TARGET_DIR"
+
+mkdir -p etc
 touch "$FSTAB"
 
 case "$RK_ROOTFS_TYPE" in
@@ -82,7 +84,7 @@ case "$RK_ROOTFS_TYPE" in
 		;;
 esac
 
-if [ "$(readlink "$TARGET_DIR/sbin/init")" != /lib/systemd/systemd ]; then
+if [ "$(readlink sbin/init)" != /lib/systemd/systemd ]; then
 	message "Fixup basic partitions for non-systemd init..."
 	fixup_basic_part proc /proc
 	fixup_basic_part devtmpfs /dev
@@ -95,8 +97,15 @@ if [ "$(readlink "$TARGET_DIR/sbin/init")" != /lib/systemd/systemd ]; then
 fi
 
 if [ "$POST_OS" = recovery ]; then
+	rm -rf mnt/udisk mnt/sdcard mnt/usb_storage  mnt/external_sd udisk sdcard
+
 	fixup_device_part /dev/sda1 /mnt/udisk auto
+	ln -sf mnt/udisk udisk
+	ln -sf udisk mnt/usb_storage
+
 	fixup_device_part /dev/mmcblk1p1 /mnt/sdcard auto
+	ln -sf mnt/sdcard sdcard
+	ln -sf sdcard mnt/external_sd
 fi
 
 for idx in $(seq 1 "$(rk_extra_part_num)"); do

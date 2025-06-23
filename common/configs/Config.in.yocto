@@ -8,7 +8,8 @@ config RK_YOCTO_SUPPORTS
 		RK_CHIP_FAMILY = "rk3399" || RK_CHIP_FAMILY = "rk3399pro" || \
 		RK_CHIP_FAMILY = "rk3566_rk3568" || RK_CHIP_FAMILY = "rk3562" || \
 		RK_CHIP_FAMILY = "rk3588" || RK_CHIP_FAMILY = "rk3576" || \
-		RK_CHIP_FAMILY = "rk3506"
+		RK_CHIP_FAMILY = "rk3506" || RK_CHIP_FAMILY = "rv1126b" || \
+		RK_CHIP_FAMILY = "rv1126_rv1109"
 
 comment "Yocto is not supported for this chip"
 	depends on !RK_YOCTO_SUPPORTS
@@ -48,6 +49,7 @@ config RK_YOCTO_MACHINE
 	default "rockchip-rk3399-sapphire-excavator" \
 		if RK_CHIP_FAMILY = "rk3399"
 	default "rockchip-rk3588-evb" if RK_CHIP_FAMILY = "rk3588"
+	default "rockchip-custom" if RK_CHIP_FAMILY = "rv1126b"
 	default "rockchip-${RK_CHIP}-evb"
 	help
 	  Basename of machine file under yocto/meta-rockchip/conf/machine/.
@@ -55,7 +57,12 @@ config RK_YOCTO_MACHINE
 config RK_YOCTO_CHROMIUM
 	bool "chromium browser"
 	depends on RK_CHIP_HAS_GPU
+	depends on !RK_YOCTO_DISPLAY_PLATFORM_NONE
 	default y if !RK_CHIP_ARM32
+
+config RK_YOCTO_MULTIMEDIA
+	bool "multimedia, e.g. gstreamer"
+	default y
 
 config RK_YOCTO_DISPLAY_PLATFORM
 	string
@@ -71,12 +78,16 @@ config RK_YOCTO_DISPLAY_PLATFORM_WAYLAND
 config RK_YOCTO_DISPLAY_PLATFORM_X11
 	bool "x11"
 
+config RK_YOCTO_DISPLAY_PLATFORM_NONE
+	bool "none"
+
 endchoice # yocto display platform
 
 endif # yocto cfg default
 
 config RK_YOCTO_EXTRA_CFG
 	string "extra custom local config"
+	default "yocto-${RK_CHIP_FAMILY}.conf" if RK_CHIP_FAMILY = "rv1126b"
 	help
 	  Name of yocto extra custom local config file under $RK_CHIP_DIR.
 

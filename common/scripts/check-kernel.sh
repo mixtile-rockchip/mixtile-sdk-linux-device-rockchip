@@ -99,10 +99,10 @@ if ! lz4 -h 2>&1 | grep -q favor-decSpeed; then
 	exit 1
 fi
 
-"$RK_SCRIPTS_DIR/check-package.sh" python-is-python3 python
+"$RK_SCRIPTS_DIR/check-package.sh" python python-is-python3
 "$RK_SCRIPTS_DIR/check-package.sh" flex
 
-"$RK_SCRIPTS_DIR/check-header.sh" openssl openssl/ssl.h libssl-dev
-"$RK_SCRIPTS_DIR/check-header.sh" gmp gmp.h libgmp-dev
-"$RK_SCRIPTS_DIR/check-header.sh" mpc mpc.h libmpc-dev
-"$RK_SCRIPTS_DIR/check-header.sh" ncurses ncurses.h libncurses-dev
+"$RK_SCRIPTS_DIR/check-header.sh" openssl/ssl.h libssl-dev
+"$RK_SCRIPTS_DIR/check-header.sh" gmp.h libgmp-dev
+"$RK_SCRIPTS_DIR/check-header.sh" mpc.h libmpc-dev
+"$RK_SCRIPTS_DIR/check-header.sh" ncurses.h libncurses-dev

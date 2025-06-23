@@ -154,7 +154,7 @@ usage_hook()
 	usage_oneline "defconfig[:<config>]" "choose defconfig"
 	usage_oneline " *_defconfig" "switch to specified defconfig"
 	echo "    available defconfigs:"
-	ls "$RK_CHIP_DIR/" | grep "defconfig$" | sed "s/^/    /"
+	ls "$RK_CHIP_DIR/" 2>/dev/null | grep "defconfig$" | sed "s/^/    /"
 	usage_oneline " olddefconfig" "resolve any unresolved symbols in .config"
 	usage_oneline " savedefconfig" "save current config to defconfig"
 	usage_oneline " menuconfig" "interactive curses-based configurator"
