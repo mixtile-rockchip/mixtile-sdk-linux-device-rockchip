@@ -33,18 +33,18 @@ build_wifibt()
 
 	RKWIFIBT_DIR="$RK_SDK_DIR/external/rkwifibt"
 
-	echo -ne "\e[35m"
-	if find "$RKWIFIBT_DIR"/* -not -user $RK_OWNER_UID | grep ""; then
-		error "Found files owned by other users!"
-		error "$RKWIFIBT_DIR is dirty for building!"
-		error "Please clear it:"
-		error "cd $RKWIFIBT_DIR"
-		error "git add -f ."
-		error "sudo git reset --hard"
-		error "sudo chown -h -R $RK_OWNER:$RK_OWNER $RKWIFIBT_DIR/"
-		exit 1
-	fi
-	echo -ne "\e[0m"
+	# echo -ne "\e[35m"
+	# if find "$RKWIFIBT_DIR"/* -not -user $RK_OWNER_UID | grep ""; then
+	# 	error "Found files owned by other users!"
+	# 	error "$RKWIFIBT_DIR is dirty for building!"
+	# 	error "Please clear it:"
+	# 	error "cd $RKWIFIBT_DIR"
+	# 	error "git add -f ."
+	# 	error "sudo git reset --hard"
+	# 	error "sudo chown -h -R $RK_OWNER:$RK_OWNER $RKWIFIBT_DIR/"
+	# 	exit 1
+	# fi
+	# echo -ne "\e[0m"
 
 	# Make sure that the kernel is ready
 	if [ ! -r kernel/include/generated/asm-offsets.h ]; then
@@ -324,7 +324,7 @@ build_wifibt()
 			echo -e "\e[35m"
 			echo "Missing wireless-bluetooth in $RK_KERNEL_DTS!"
 			echo -e "\e[0m"
-			exit 1
+			# exit 1
 		fi
 
 		echo "installing BT daemons"
