@@ -42,7 +42,7 @@ build_wifibt()
 		error "git add -f ."
 		error "sudo git reset --hard"
 		error "sudo chown -h -R $RK_OWNER:$RK_OWNER $RKWIFIBT_DIR/"
-		exit 1
+		#exit 1
 	fi
 	echo -ne "\e[0m"
 

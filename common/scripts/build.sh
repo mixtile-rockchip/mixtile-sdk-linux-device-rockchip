@@ -208,7 +208,7 @@ ensure_tools()
 		if [ "$RK_ROOTFS_PREFER_PREBUILT_TOOLS" ] || \
 			[ "$RK_ROOTFS_PREBUILT_TOOLS" ] || \
 			[ ! -e "$t" ]; then
-			install -v -D -m 0755 "$RK_TOOLS_DIR/armhf/${t##*/}" "$t"
+			install -v -D -m 0755 "$RK_TOOLS_DIR/aarch64/${t##*/}" "$t"
 			continue
 		fi
 
