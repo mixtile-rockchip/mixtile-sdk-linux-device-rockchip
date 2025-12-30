@@ -27,6 +27,9 @@ endchoice # extra fonts
 config RK_ROOTFS_ASYNC_COMMIT
 	bool "async-commit (DRM plane async-commit property)"
 	default y if !RK_ROOTFS_LIGHTWEIGHT
+	help
+	  Enable Rockchip's custom async-commit property for all DRM
+	  planes to bypass vblank synchronization in drmModeSetPlane().
 
 config RK_ROOTFS_UDEV_RULES
 	bool "Rockchip udev rules"
@@ -44,7 +47,7 @@ menuconfig RK_ROOTFS_BOOTANIM
 config RK_ROOTFS_BOOTANIM_TIMEOUT
 	int "timeout"
 	depends on RK_ROOTFS_BOOTANIM
-	default 3
+	default 10
 
 endmenuconfig # Bootanim
 

@@ -13,7 +13,7 @@ Rockchip Linux SDK for Rockchip SoC boards
 ```shell
    ~$ make cleanall
 ```
-. Choose SDK defconfig:
+3. Choose SDK defconfig:
 ```shell
    ~$ make defconfig
 ```

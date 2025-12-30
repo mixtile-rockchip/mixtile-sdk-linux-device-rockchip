@@ -23,8 +23,8 @@
 
 			compile {
 				size         = <0x00800000>;
-				srambase     = <0x3ff80000>;
-				sramsize     = <0x00080000>;
+				sram_start   = <0x3ff80000>;
+				sram_size    = <0x00080000>;
 				sys          = "rtt";    // "hal" or "rtt"
 				core         = "ap";
 				rtt_config   = "board/rk3576_evb1/defconfig"
@@ -38,10 +38,10 @@
 		};
 	};
 
-	ext_memory {
-		shm_base        = <0x47900000>;
+	share {
+		shm_base        = <0x47c00000>;
 		shm_size        = <0x00400000>;
-		rpmsg_base      = <0x47d00000>;
+		rpmsg_base      = <0x47800000>;
 		rpmsg_size      = <0x00400000>;
 	};
 

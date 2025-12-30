@@ -1,1 +1,0 @@
-../overlays/yocto/default/install.sh

@@ -4,14 +4,6 @@ source "${RK_POST_HELPER:-$(dirname "$(realpath "$0")")/post-helper}"
 
 FSTAB="etc/fstab"
 
-fixup_root()
-{
-	message "Fixing up rootfs type: $1"
-
-	FS_TYPE=$1
-	sed -i "s~\([[:space:]]/[[:space:]]\+\)\w\+~\1${FS_TYPE}~" "$FSTAB"
-}
-
 del_part()
 {
 	SRC="$1"
@@ -40,6 +32,31 @@ fixup_part()
 	echo -e "$SRC\t$MOUNTPOINT\t$FS_TYPE\t$MOUNT_OPTS\t0 $PASS" >> "$FSTAB"
 
 	mkdir -p "$TARGET_DIR/$MOUNTPOINT"
+}
+
+fixup_root()
+{
+	message "Fixing up rootfs: $1 ${RK_ROOTFS_RO:+(ro)}"
+
+	SRC="/dev/root"
+	MOUNTPOINT="/"
+	FS_TYPE=$1
+	MOUNT_OPTS="defaults"
+	PASS="1"
+
+	ROOTFS_ARRAY=($(grep "[[:space:]]/[[:space:]]" "$FSTAB" || true))
+	if [ ${#ROOTFS_ARRAY[@]} -ne 0 ]; then
+		SRC="${ROOTFS_ARRAY[0]}"
+		MOUNT_OPTS="${ROOTFS_ARRAY[3]}"
+		PASS="${ROOTFS_ARRAY[5]}"
+	fi
+
+	if [ "$RK_ROOTFS_RO" ] && \
+		! echo "$MOUNT_OPTS" | grep -E ",ro\>|^ro\>" ; then
+		MOUNT_OPTS="${MOUNT_OPTS},ro"
+	fi
+
+	fixup_part "$SRC" "$MOUNTPOINT" "$FS_TYPE" "$MOUNT_OPTS" "$PASS"
 }
 
 fixup_basic_part()
@@ -96,16 +113,20 @@ if [ "$(readlink sbin/init)" != /lib/systemd/systemd ]; then
 	fixup_basic_part pstore /sys/fs/pstore nosuid,nodev,noexec
 fi
 
+if [ "$RK_ROOTFS_FORCE_RAMTMP" ]; then
+	fixup_basic_part tmpfs /tmp mode=1777
+fi
+
 if [ "$POST_OS" = recovery ]; then
-	rm -rf mnt/udisk mnt/sdcard mnt/usb_storage  mnt/external_sd udisk sdcard
+	rm -rfv mnt/udisk mnt/sdcard mnt/usb_storage mnt/external_sd udisk sdcard
 
 	fixup_device_part /dev/sda1 /mnt/udisk auto
-	ln -sf mnt/udisk udisk
-	ln -sf udisk mnt/usb_storage
+	ln -sfv mnt/udisk udisk
+	ln -sfv udisk mnt/usb_storage
 
 	fixup_device_part /dev/mmcblk1p1 /mnt/sdcard auto
-	ln -sf mnt/sdcard sdcard
-	ln -sf sdcard mnt/external_sd
+	ln -sfv mnt/sdcard sdcard
+	ln -sfv sdcard mnt/external_sd
 fi
 
 for idx in $(seq 1 "$(rk_extra_part_num)"); do
@@ -120,5 +141,5 @@ for idx in $(seq 1 "$(rk_extra_part_num)"); do
 	fi
 
 	fixup_device_part "$DEV" "$MOUNTPOINT" "$FS_TYPE" \
-		"$(rk_extra_part_options $idx)"
+		"$(rk_extra_part_mnt_opts $idx)"
 done

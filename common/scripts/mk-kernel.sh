@@ -75,12 +75,15 @@ do_build()
 		kernel-modules | modules)
 			MOD_DIR="${2:-$RK_OUTDIR/kernel-modules}"
 			run_command $KMAKE modules
-			run_command $KMAKE modules_install \
-				INSTALL_MOD_PATH="$MOD_DIR"
+			run_command make -C "$RK_SDK_DIR/kernel/" \
+				modules_install INSTALL_MOD_PATH="$MOD_DIR"
 			run_command find "$MOD_DIR/lib/modules/" -type l -delete
 			;;
 		kernel*)
 			run_command $KMAKE "$RK_KERNEL_DTS_NAME.img"
+			run_command ln -rsf \
+				"$KERNEL_DTS_DIR/$RK_KERNEL_DTS_NAME.dtb" \
+				"$RK_KERNEL_DTB"
 
 			# The FIT image for initrd would be packed in rootfs stage
 			if [ -n "$RK_BOOT_FIT_ITS" ] && \
@@ -128,62 +131,49 @@ build_recovery_kernel()
 	KERNEL_DIR="$RK_SDK_DIR/kernel"
 	RECOVERY_KERNEL_DIR="$RK_OUTDIR/recovery-kernel"
 	RECOVERY_KERNEL_IMG="${RK_KERNEL_IMG#kernel/}"
-	RECOVERY_KERNEL_DTB="${RK_KERNEL_DTS_DIR#kernel/}/${RK_KERNEL_RECOVERY_DTS_NAME:-$RK_KERNEL_DTS_NAME}.dtb"
-	RECOVERY_KERNEL_DTB_TARGET="${RECOVERY_KERNEL_DTB##*/boot/dts/}"
+	RECOVERY_KERNEL_DTS_NAME="${RK_KERNEL_RECOVERY_DTS_NAME:-$RK_KERNEL_DTS_NAME}"
+	REOVERY_KERNEL_DTB="${KERNEL_DTS_DIR#kernel/}/$RECOVERY_KERNEL_DTS_NAME.dtb"
 
-	if [ -z "$RK_KERNEL_RECOVERY_CFG" ] && \
-		[ -z "$RK_KERNEL_RECOVERY_CFG_FRAGMENTS" ] && \
-		[ -z "$RK_KERNEL_RECOVERY_DTS_NAME" ] && \
-		[ -z "$RK_KERNEL_RECOVERY_LOGO" ] && \
-		[ -z "$RK_KERNEL_RECOVERY_LOGO_KERNEL" ]; then
+	if [ -L "$RECOVERY_KERNEL_DIR" ]; then
 		run_command rm -rf "$RECOVERY_KERNEL_DIR"
-		run_command ln -rsf "$KERNEL_DIR" "$RECOVERY_KERNEL_DIR"
-		run_command cd "$RECOVERY_KERNEL_DIR"
-
-		make_kernel_config
-		run_command $KMAKE "$(basename "$RECOVERY_KERNEL_IMG")"
-		run_command $KMAKE "$RECOVERY_KERNEL_DTB_TARGET"
-	else
-		if [ ! -d "$RECOVERY_KERNEL_DIR" ] || \
-			[ -L "$RECOVERY_KERNEL_DIR" ]; then
-			run_command rm -rf "$RECOVERY_KERNEL_DIR"
-			run_command mkdir -p "$RECOVERY_KERNEL_DIR"
-		fi
-
-		LOADER_LOGO="${RK_KERNEL_RECOVERY_LOGO:-logo.bmp}"
-		KERNEL_LOGO="${RK_KERNEL_RECOVERY_LOGO_KERNEL:-logo_kernel.bmp}"
-
-		run_command cd "$RECOVERY_KERNEL_DIR"
-		run_command ln -rsf "$KERNEL_DIR/.git" .
-		run_command ln -rsf "$KERNEL_DIR/$LOADER_LOGO" logo.bmp
-		run_command ln -rsf "$KERNEL_DIR/$KERNEL_LOGO" logo_kernel.bmp
-		run_command mkdir -p scripts
-		run_command ln -rsf "$KERNEL_DIR/scripts/resource_tool" scripts/
-
-		# HACK: Based on kernel/Makefile's MRPROPER_FILES
-		run_command tar cf "$RK_OUTDIR/kernel.tar" \
-			--remove-files --ignore-failed-read \
-			"$KERNEL_DIR/.config" "$KERNEL_DIR/.config.old" \
-			"$KERNEL_DIR/include/config" \
-			"$KERNEL_DIR/include/generated" \
-			"$KERNEL_DIR/arch/$RK_KERNEL_ARCH/include/generated" \
-			"$KERNEL_DIR/Module.symvers"
-
-
-		KMAKE="$KMAKE O=$RECOVERY_KERNEL_DIR"
-		make_recovery_kernel_config
-		run_command $KMAKE "$(basename "$RECOVERY_KERNEL_IMG")"
-		run_command $KMAKE "$RECOVERY_KERNEL_DTB_TARGET"
-
-		run_command tar xf "$RK_OUTDIR/kernel.tar" -C /
-		run_command rm -f "$RK_OUTDIR/kernel.tar"
 	fi
+	run_command mkdir -p "$RECOVERY_KERNEL_DIR"
+
+	LOADER_LOGO="${RK_KERNEL_RECOVERY_LOGO:-logo.bmp}"
+	KERNEL_LOGO="${RK_KERNEL_RECOVERY_LOGO_KERNEL:-logo_kernel.bmp}"
+
+	run_command cd "$RECOVERY_KERNEL_DIR"
+	run_command ln -rsf "$KERNEL_DIR/.git" .
+	run_command mkdir -p scripts
+	run_command ln -rsf "$KERNEL_DIR/scripts/resource_tool" scripts/
+	run_command rm -f logo.bmp logo_kernel.bmp
+
+	# HACK: Fake mrproper
+	# Based on kernel/Makefile's MRPROPER_FILES
+	run_command tar cf "$RK_OUTDIR/kernel.tar" \
+		--remove-files --ignore-failed-read \
+		"$KERNEL_DIR/.config" "$KERNEL_DIR/.config.old" \
+		"$KERNEL_DIR/include/config" \
+		"$KERNEL_DIR/include/generated" \
+		"$KERNEL_DIR/arch/$RK_KERNEL_ARCH/include/generated" \
+		"$KERNEL_DIR/Module.symvers"
+
+	KMAKE="$KMAKE O=$RECOVERY_KERNEL_DIR"
+	make_recovery_kernel_config
+	run_command $KMAKE "$RECOVERY_KERNEL_DTS_NAME.img"
+
+	run_command ln -rsf "$KERNEL_DIR/$LOADER_LOGO" logo.bmp
+	run_command ln -rsf "$KERNEL_DIR/$KERNEL_LOGO" logo_kernel.bmp
+
+	# HACK: Restore mrproper files
+	run_command tar xf "$RK_OUTDIR/kernel.tar" -C /
+	run_command rm -f "$RK_OUTDIR/kernel.tar"
 
 	run_command ln -rsf "$RECOVERY_KERNEL_IMG" \
 		"$RK_OUTDIR/recovery-kernel.img"
-	run_command ln -rsf "$RECOVERY_KERNEL_DTB" \
+	run_command ln -rsf "$REOVERY_KERNEL_DTB" \
 		"$RK_OUTDIR/recovery-kernel.dtb"
-	run_command scripts/resource_tool "$RECOVERY_KERNEL_DTB" \
+	run_command scripts/resource_tool "$RK_OUTDIR/recovery-kernel.dtb" \
 		logo.bmp logo_kernel.bmp
 	run_command ln -rsf resource.img "$RK_OUTDIR/recovery-resource.img"
 }
@@ -358,7 +348,7 @@ init_hook()
 		RK_KERNEL_VERSION=$KERNEL_CURRENT
 		notice "Using current kernel version($RK_KERNEL_VERSION)"
 	else
-		RK_KERNEL_VERSION=5.10
+		RK_KERNEL_VERSION=6.1
 		notice "Fallback to kernel version($RK_KERNEL_VERSION)"
 	fi
 
@@ -431,6 +421,10 @@ build_hook()
 	message "${RK_KERNEL_TOOLCHAIN:-gcc}"
 	echo
 
+	KERNEL_DTS="$(find "kernel/arch/$RK_KERNEL_ARCH/boot/dts" \
+		-name "$RK_KERNEL_DTS_NAME.dts")"
+	KERNEL_DTS_DIR="$(dirname "$KERNEL_DTS")"
+
 	case "$1" in
 		recovery-kernel) build_recovery_kernel $@ ;;
 		kernel-*)
@@ -479,8 +473,13 @@ post_build_hook()
 		pack_linux_headers "$1"
 	else
 		pack_linux_headers host
-		pack_linux_headers armhf
-		[ "$RK_CHIP_ARM32" ] || pack_linux_headers aarch64
+
+		if [ "$RK_CHIP_ARM32" ]; then
+			pack_linux_headers armhf
+		elif [ "$RK_CHIP_ARM64" ]; then
+			pack_linux_headers armhf
+			pack_linux_headers aarch64
+		fi
 	fi
 
 	finish_build linux-headers

@@ -7,4 +7,3 @@ RK_KERNEL_DTS_NAME="rk3576-evb1-v10-linux-amp"
 RK_RECOVERY=y
 RK_RECOVERY_FIT_ITS_NAME="zboot4recovery.its"
 RK_PARAMETER="parameter-amp.txt"
-RK_USE_FIT_IMG=y

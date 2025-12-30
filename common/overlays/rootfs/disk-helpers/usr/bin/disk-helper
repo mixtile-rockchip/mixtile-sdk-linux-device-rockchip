@@ -1,10 +1,10 @@
-#!/bin/sh
+#!/bin/bash
 
 # Uncomment below to see more logs
 # set -x
 
-BUSYBOX_MOUNT_OPTS="loop (a|)sync (no|)atime (no|)diratime (no|)relatime (no|)dev (no|)exec (no|)suid (r|)shared (r|)slave (r|)private (un|)bindable (r|)bind move remount ro"
-NTFS_3G_MOUNT_OPTS="ro uid=[0-9]* gid=[0-9]* umask=[0-9]* fmask=[0-9]* dmask=[0-9]*"
+BUSYBOX_MOUNT_OPTS="defaults loop (a|)sync (no|)atime (no|)diratime (no|)relatime (no|)dev (no|)exec (no|)suid (r|)shared (r|)slave (r|)private (un|)bindable (r|)bind move remount ro"
+NTFS_3G_MOUNT_OPTS="defaults ro uid=[0-9]* gid=[0-9]* umask=[0-9]* fmask=[0-9]* dmask=[0-9]*"
 
 message()
 {
@@ -184,15 +184,15 @@ format_ubifs()
 
 remount_part()
 {
-	mountpoint -q $MOUNT_POINT || return
-
-	if is_ro; then
-		[ "$1" != ro ] || return
-	else
-		[ "$1" != rw ] || return
+	if mountpoint -q $MOUNT_POINT; then
+		REMOUNT_OPTS=remount,${1:-$MOUNT_OPTS}
+		if ! echo $REMOUNT_OPTS | grep -q ",r[ow]\>"; then
+			# Default is rw when not specified
+			REMOUNT_OPTS=$REMOUNT_OPTS,rw
+		fi
+		message "Remounting $MOUNT_POINT with -o $REMOUNT_OPTS $2"
+		mount -o $REMOUNT_OPTS $MOUNT_POINT
 	fi
-
-	mount -o remount,$1 $MOUNT_POINT
 }
 
 format_part()
@@ -264,7 +264,7 @@ format_resize()
 	message "Format and mount rw"
 	format_part || return 1
 	mount_part || return 1
-	remount_part rw
+	remount_part rw "for restoring"
 
 	message "Restore backup data"
 	cp -a "$BACKUP/$SRC" $(dirname "$SRC") || return 1
@@ -336,15 +336,17 @@ resize_part()
 	message "Resizing $DEV($FSTYPE)"
 
 	# Online resize needs read-write
-	remount_part rw
+	remount_part rw "for online-resize"
 	if eval $FSRESIZE; then
 		touch $MOUNT_POINT/.resized
 		sync
 		return
 	fi
 
-	message "Done with rootfs"
-	is_rootfs && return
+	if is_rootfs; then
+		message "Done with rootfs"
+		return
+	fi
 
 	message "Fallback to format resize"
 	TEMP_BACKUP=$(mktemp -d)
@@ -477,18 +479,12 @@ prepare_part()
 			OPTS=$(convert_mount_opts)
 			;;
 	esac
-	MOUNT_OPTS=${OPTS:+" -o ${OPTS%,}"}
-
-	# Save initial ro/rw state
-	if is_ro; then
-		MOUNT_RO_RW=ro
-	else
-		MOUNT_RO_RW=rw
-	fi
+	MOUNT_OPTS=${OPTS:+"${OPTS%,}"}
+	MOUNT_OPTS=${MOUNT_OPTS:-defaults}
 
 	# Prepare for ubi
 	if [ "$FSTYPE" = ubifs ] ||
-		[ "$(dd if=$DEV bs=1 count=3 status=none)" = UBI ]; then
+		dd if=$DEV bs=1 count=3 status=none | grep -q "^UBI$"; then
 		if ! prepare_ubi; then
 			message "Failed to prepare ubi for $DEV"
 
@@ -513,10 +509,10 @@ check_part()
 
 	if is_rootfs; then
 		# Remount ro for checking
-		remount_part ro
+		remount_part ro "for fsck"
 	elif mountpoint -q "$MOUNT_POINT"; then
 		# Unmount for checking
-		umount "$MOUNT_POINT" || remount_part ro
+		umount "$MOUNT_POINT" || remount_part ro "for fsck"
 	fi
 
 	check_tool "$FSCK" $FSCK_CONFIG || return
@@ -528,19 +524,13 @@ mount_part()
 {
 	mountpoint -q "$MOUNT_POINT" && return
 
-	message "Mounting $DEV($FSTYPE) on $MOUNT_POINT ${MOUNT_OPTS:+with$MOUNT_OPTS}"
-	if ! $MOUNT $DEV $MOUNT_POINT $MOUNT_OPTS; then
+	message "Mounting $DEV($FSTYPE) on $MOUNT_POINT" \
+		"${MOUNT_OPTS:+with -o $MOUNT_OPTS}"
+	if ! $MOUNT $DEV $MOUNT_POINT -o $MOUNT_OPTS; then
 		if [ "$AUTO_MKFS" ]; then
 			message "Failed to mount $DEV, try to format it"
 			format_part || return 1
-			$MOUNT $DEV $MOUNT_POINT $MOUNT_OPTS || return 1
+			$MOUNT $DEV $MOUNT_POINT -o $MOUNT_OPTS || return 1
 		fi
-	fi
-
-	# Save ro/rw state
-	if is_ro; then
-		MOUNT_RO_RW=ro
-	else
-		MOUNT_RO_RW=rw
 	fi
 }

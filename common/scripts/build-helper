@@ -33,7 +33,7 @@ run_command()
 		notice "$@"
 	else
 		notice "+ $@"
-		$@
+		"$@"
 	fi
 }
 

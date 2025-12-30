@@ -211,7 +211,7 @@ rk_security_setup_ramboot_prebuild()
 	shift
 	optee_storage=$1
 
-	ROOTFS_IMG=rootfs.${RK_ROOTFS_TYPE}
+	ROOTFS_IMG="$RK_ROOTFS_IMG"
 	ROOTFS_DIR="$RK_OUTDIR/$ROOTFS"
 	IMAGE_DIR="$ROOTFS_DIR/images"
 

@@ -25,13 +25,13 @@ build_buildroot()
 		if [ "$RK_ROOTFS_TYPE" == "ubi" ]; then
 			# UBIFS DOES NOT support R/W block device,
 			# so it only support RO encrypted image.
-			SUFFIX=squashfs
+			ROOTFS=rootfs.squashfs
 		else
-			SUFFIX=$RK_ROOTFS_TYPE
+			ROOTFS=$RK_ROOTFS_IMG
 		fi
 
 		"$RK_SCRIPTS_DIR/mk-security.sh" system \
-			$RK_SECURITY_CHECK_METHOD $IMAGE_DIR/rootfs.$SUFFIX
+			$RK_SECURITY_CHECK_METHOD $IMAGE_DIR/$ROOTFS
 
 		if [ "$RK_ROOTFS_TYPE" == "ubi" ]; then
 			# Force to using dynamic to faster bootup.
@@ -94,11 +94,9 @@ gen_yocto_conf()
 	echo "DISPLAY_PLATFORM := \"$RK_YOCTO_DISPLAY_PLATFORM\""
 }
 
-build_yocto()
+build_yocto_conf()
 {
 	check_config RK_YOCTO || false
-
-	IMAGE_DIR="${1:-$RK_OUTDIR/yocto}"
 
 	"$RK_SCRIPTS_DIR/check-yocto.sh"
 
@@ -157,13 +155,13 @@ build_yocto()
 		echo "include custom.conf" > build/conf/local.conf
 
 		message "=========================================="
-		message "          Start building for custom $RK_YOCTO_CFG"
+		message "          Using yocto custom $RK_YOCTO_CFG"
 		message "=========================================="
 	else
 		gen_yocto_conf > build/conf/local.conf
 
 		message "=========================================="
-		message "          Start building for machine($RK_YOCTO_MACHINE)"
+		message "          Using yocto machine($RK_YOCTO_MACHINE)"
 		message "=========================================="
 	fi
 
@@ -185,7 +183,15 @@ build_yocto()
 		ln -rsf "$RK_CHIP_DIR/$RK_YOCTO_EXTRA_CFG" build/conf/extra.conf
 		echo "include extra.conf" >> build/conf/local.conf
 	fi
+}
 
+build_yocto()
+{
+	check_config RK_YOCTO || false
+
+	IMAGE_DIR="${1:-$RK_OUTDIR/yocto}"
+
+	build_yocto_conf
 
 	source oe-init-build-env build
 
@@ -216,12 +222,19 @@ build_debian()
 	message "          Start building $RK_DEBIAN_VERSION($ARCH)"
 	message "=========================================="
 
+	if [ "$RK_DEBIAN_SERVER" ]; then
+		TARGET=base
+	else
+		TARGET=desktop
+	fi
+
 	cd debian
-	if [ ! -f linaro-$RK_DEBIAN_VERSION-alip-*.tar.gz ]; then
-		RELEASE=$RK_DEBIAN_VERSION TARGET=desktop ARCH=$ARCH \
+	if [ ! -f linaro-$RK_DEBIAN_VERSION-$ARCH-$TARGET.tar.gz ]; then
+		rm -rf linaro-$RK_DEBIAN_VERSION-*.tar.gz
+		RELEASE=$RK_DEBIAN_VERSION TARGET=$TARGET ARCH=$ARCH \
 			./mk-base-debian.sh
 		ln -sf linaro-$RK_DEBIAN_VERSION-alip-*.tar.gz \
-			linaro-$RK_DEBIAN_VERSION-$ARCH.tar.gz
+			linaro-$RK_DEBIAN_VERSION-$ARCH-$TARGET.tar.gz
 	fi
 
 	DEBIAN_SCRIPT=mk-rootfs-$RK_DEBIAN_VERSION.sh
@@ -253,6 +266,7 @@ usage_hook()
 	usage_oneline "bmake[:<arg1>:<arg2>]" "alias of buildroot-make"
 	usage_oneline "buildroot-sdk" "build the buildroot SDK tarball"
 	usage_oneline "bsdk" "alias of buildroot-sdk"
+	usage_oneline "edit-debian-packages" "edit debian package list"
 	usage_oneline "rootfs[:<rootfs type>]" "build default rootfs"
 	usage_oneline "buildroot" "build buildroot rootfs"
 	usage_oneline "yocto" "build yocto rootfs"
@@ -308,7 +322,7 @@ init_hook()
 	fi
 }
 
-PRE_BUILD_CMDS="buildroot-config bconfig buildroot-make bmake"
+PRE_BUILD_CMDS="buildroot-config bconfig buildroot-make bmake edit-debian-packages"
 pre_build_hook()
 {
 	check_config RK_ROOTFS || false
@@ -336,6 +350,21 @@ pre_build_hook()
 
 			finish_build $@
 			;;
+		edit-debian-packages)
+			check_config RK_DEBIAN || false
+			ARCH=${RK_DEBIAN_ARCH:-armhf}
+			if [ "$RK_DEBIAN_SERVER" ]; then
+				TARGET=base
+			else
+				TARGET=desktop
+			fi
+
+			cd "$RK_SDK_DIR/debian/ubuntu-build-service/"
+			cd "$RK_DEBIAN_VERSION-$TARGET-$ARCH"
+			${EDITOR:-vi} \
+				customization/package-lists/linaro.list.chroot
+			finish_build $@
+			;;
 	esac
 }
 
@@ -350,7 +379,7 @@ build_hook()
 		ROOTFS=$1
 	fi
 
-	ROOTFS_IMG=rootfs.${RK_ROOTFS_TYPE}
+	ROOTFS_IMG="$RK_ROOTFS_IMG"
 	ROOTFS_DIR="$RK_OUTDIR/$ROOTFS"
 	IMAGE_DIR="$ROOTFS_DIR/images"
 
@@ -394,9 +423,12 @@ build_hook()
 			ln -rsf "$IMAGE_DIR/security_system.img" \
 				"$RK_FIRMWARE_DIR/rootfs.img"
 		fi
+	elif [ "$RK_FASTBOOT" ]; then
+		"$RK_SCRIPTS_DIR/mk-fitimage.sh" $IMAGE_DIR/fastboot_ramdisk.img "$RK_FASTBOOT_ROOTFS_ITS" \
+			"$RK_SDK_DIR/$RK_KERNEL_IMG" "$RK_SDK_DIR/$RK_KERNEL_DTB" \
+			"$RK_SDK_DIR/kernel/resource.img" "$IMAGE_DIR/$ROOTFS_IMG"
 
-
-
+		ln -rsf "$IMAGE_DIR/fastboot_ramdisk.img" "$RK_FIRMWARE_DIR/rootfs.img"
 	else
 		ln -rsf "$IMAGE_DIR/$ROOTFS_IMG" "$RK_FIRMWARE_DIR/rootfs.img"
 	fi
@@ -424,6 +456,7 @@ post_build_hook()
 source "${RK_BUILD_HELPER:-$(dirname "$(realpath "$0")")/build-helper}"
 
 case "${1:-rootfs}" in
+	yocto-config | yconfig) build_yocto_conf ;;
 	buildroot-config | bconfig | buildroot-make | bmake) pre_build_hook $@ ;;
 	buildroot-sdk | bsdk) post_build_hook $@ ;;
 	buildroot | debian | yocto) init_hook $@ ;&

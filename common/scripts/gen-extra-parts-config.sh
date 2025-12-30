@@ -15,13 +15,17 @@ menu "Extra partitions (oem, userdata, etc.)"
 
 if RK_UBI && RK_EXTRA_PARTITION_NUM > 0
 
-config RK_UBI_PAGE_SIZE
-	hex "ubi image page size (B)"
+config RK_UBI_MINIO_SIZE
+	hex "UBI minimum I/O unit size (B)"
 	default "0x800"
 
-config RK_UBI_BLOCK_SIZE
-	hex "ubi image block size (B)"
+config RK_UBI_PEB_SIZE
+	hex "UBI physical eraseblock (PEB) size (B)"
 	default "0x20000"
+
+config RK_UBI_SUBPAGE_SIZE
+	hex "UBI sub-page size (B)"
+	default "0x800"
 
 config RK_FLASH_SIZE
 	int "size of flash storage (M)"
@@ -118,9 +122,20 @@ config RK_EXTRA_PARTITION_${i}_JFFS2
 
 endchoice # fstype
 
-config RK_EXTRA_PARTITION_${i}_OPTIONS
+config RK_EXTRA_PARTITION_${i}_MNT_OPTS
 	string "mount options"
 	default "defaults"
+
+config RK_EXTRA_PARTITION_${i}_MKFS_OPTS
+	string "mkfs options"
+
+config RK_EXTRA_PARTITION_${i}_SIZE
+	string "image size (size(M|K)|auto(0)|max)"
+	default "auto"
+	help
+	  Size of image.
+	  Set "auto" to auto detect.
+	  Set "max" to use maxium partition size in parameter file.
 
 endif # !builtin
 
@@ -131,7 +146,7 @@ EOF
 	if [ $i -lt 3 ]; then
 		cat << EOF
 	default "empty" if RK_CHIP_FAMILY = "rk3308"
-	default "normal"
+	default "testdata"
 EOF
 	fi
 
@@ -140,14 +155,6 @@ EOF
 	  Source dirs, each of them can be either of absolute path(/<dir>) or
 	  relative to <RK_CHIP_DIR>|<RK_EXTRA_PARTS_DIR> or relative to
 	  (<RK_CHIP_DIR>|<RK_EXTRA_PARTS_DIR>)/<partition name>.
-
-config RK_EXTRA_PARTITION_${i}_SIZE
-	string "image size (size(M|K)|auto(0)|max)"
-	default "auto"
-	help
-	  Size of image.
-	  Set "auto" to auto detect.
-	  Set "max" to use maxium partition size in parameter file.
 
 config RK_EXTRA_PARTITION_${i}_BUILTIN
 	bool "merged into rootfs"
@@ -160,7 +167,7 @@ config RK_EXTRA_PARTITION_${i}_FEATURES
 
 config RK_EXTRA_PARTITION_${i}_STR
 	string
-	default "\${RK_EXTRA_PARTITION_${i}_DEV:-auto}:\$RK_EXTRA_PARTITION_${i}_NAME:\$RK_EXTRA_PARTITION_${i}_MOUNTPOINT:\$RK_EXTRA_PARTITION_${i}_FSTYPE:\$RK_EXTRA_PARTITION_${i}_OPTIONS:\${RK_EXTRA_PARTITION_${i}_SRC// /,}:\$RK_EXTRA_PARTITION_${i}_SIZE:\$RK_EXTRA_PARTITION_${i}_FEATURES"
+	default "\${RK_EXTRA_PARTITION_${i}_DEV:-auto}:\$RK_EXTRA_PARTITION_${i}_NAME:\$RK_EXTRA_PARTITION_${i}_MOUNTPOINT:\$RK_EXTRA_PARTITION_${i}_FSTYPE:\$RK_EXTRA_PARTITION_${i}_MNT_OPTS:\${RK_EXTRA_PARTITION_${i}_SRC// /,}:\$RK_EXTRA_PARTITION_${i}_SIZE:\$RK_EXTRA_PARTITION_${i}_FEATURES:\${RK_EXTRA_PARTITION_${i}_MKFS_OPTS// /+}"
 
 endmenu # Extra partition $i
 EOF

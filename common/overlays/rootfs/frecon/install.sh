@@ -9,7 +9,9 @@ OVERLAY_DIR="$(dirname "$(realpath "$0")")"
 
 message "Installing frecon service..."
 
-$RK_RSYNC "$OVERLAY_DIR/usr" "$OVERLAY_DIR/etc" "$TARGET_DIR/"
+$RK_RSYNC "$OVERLAY_DIR/etc" "$TARGET_DIR/"
+
+ensure_tools "$TARGET_DIR/usr/bin/frecon"
 
 mkdir -p "$TARGET_DIR/etc/profile.d"
 {

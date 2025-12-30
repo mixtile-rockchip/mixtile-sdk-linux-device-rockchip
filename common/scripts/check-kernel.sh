@@ -15,7 +15,7 @@ check_usb_gadget()
 	CONFIGS="$@"
 
 	for cfg in $CONFIGS; do
-		if grep -wq "$cfg=y" kernel/.config; then
+		if grep -q "$cfg=" kernel/.config; then
 			continue
 		fi
 
@@ -32,7 +32,7 @@ if [ -r "kernel/.config" ]; then
 	EXT4_CONFIGS=$(export | grep -oE "\<RK_.*=\"ext4\"$" || true)
 
 	if [ "$EXT4_CONFIGS" ] && \
-		! grep -q "CONFIG_EXT4_FS=y" kernel/.config; then
+		! grep -q "CONFIG_EXT4_FS=" kernel/.config; then
 		echo -e "\e[35m"
 		echo "Your kernel doesn't support ext4 filesystem"
 		echo "Please enable CONFIG_EXT4_FS for:"
@@ -42,8 +42,8 @@ if [ -r "kernel/.config" ]; then
 	fi
 
 	# For bypassing DRM permision checks.
-	if grep -q "CONFIG_DRM=y" kernel/.config &&
-		! grep -q "CONFIG_DRM_IGNORE_IOTCL_PERMIT=y" kernel/.config; then
+	if grep -q "CONFIG_DRM=" kernel/.config &&
+		! grep -q "CONFIG_DRM_IGNORE_IOTCL_PERMIT=" kernel/.config; then
 		echo -e "\e[35m"
 		echo "Please enable CONFIG_DRM_IGNORE_IOTCL_PERMIT in kernel."
 		echo -e "\e[0m"
@@ -54,7 +54,7 @@ if [ -r "kernel/.config" ]; then
 
 	# For using flock.
 	if [ "$RK_USB_GADGET" -o "$RK_ROOTFS_INPUT_EVENT_DAEMON" ] && \
-		! grep -q "CONFIG_FILE_LOCKING=y" kernel/.config; then
+		! grep -q "CONFIG_FILE_LOCKING=" kernel/.config; then
 		echo -e "\e[35m"
 		echo "Please enable CONFIG_FILE_LOCKING in kernel."
 		echo -e "\e[0m"

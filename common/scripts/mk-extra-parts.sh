@@ -26,6 +26,7 @@ post_build_hook()
 		PART_NAME="$(rk_extra_part_name $idx)"
 		FS_TYPE="$(rk_extra_part_fstype $idx)"
 		SIZE="$(rk_extra_part_size $idx)"
+		OPTIONS="$(rk_extra_part_mkfs_opts $idx)"
 		FAKEROOT_SCRIPT="$(rk_extra_part_fakeroot_script $idx)"
 		OUTDIR="$(rk_extra_part_outdir $idx)"
 		DST="$(rk_extra_part_img $idx)"
@@ -66,7 +67,7 @@ post_build_hook()
 
 		sed -i '/mk-image.sh/d' "$FAKEROOT_SCRIPT"
 		echo "\"$RK_SCRIPTS_DIR/mk-image.sh\" \
-			-t \"$FS_TYPE\" -s \"$SIZE\" -l \"$PART_NAME\" \
+			-t \"$FS_TYPE\" -s \"$SIZE\" -l \"$PART_NAME\" -o \"$OPTIONS\" \
 			\"$OUTDIR\" \"$DST\"" >> "$FAKEROOT_SCRIPT"
 
 		notice "Packing $DST from $FAKEROOT_SCRIPT"

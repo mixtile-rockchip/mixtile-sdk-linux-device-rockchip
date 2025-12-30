@@ -55,5 +55,13 @@ endmenuconfig # Misc
 
 config RK_USE_FIT_IMG
 	bool "use FIT (Flattened Image Tree) image"
+	default y if RK_CHIP_FAMILY != "px30" && RK_CHIP_FAMILY != "px3se" && \
+		RK_CHIP_FAMILY != "rk1806" && RK_CHIP_FAMILY != "rk1808" && \
+		RK_CHIP_FAMILY != "rk3036" && RK_CHIP_FAMILY != "rk3128h" && \
+		RK_CHIP_FAMILY != "rk312x" && RK_CHIP_FAMILY != "rk3229" && \
+		RK_CHIP_FAMILY != "rk3288" && RK_CHIP_FAMILY != "rk3308" && \
+		RK_CHIP_FAMILY != "rk3326" && RK_CHIP_FAMILY != "rk3328" && \
+		RK_CHIP_FAMILY != "rk3358" && RK_CHIP_FAMILY != "rk3399" && \
+		RK_CHIP_FAMILY != "rk3399pro"
 
 endmenu # Firmware

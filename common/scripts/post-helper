@@ -174,14 +174,14 @@ done
 for d in lib bin sbin; do
 	case "$(realpath "$TARGET_DIR/$d")" in
 		# Should be relative link
-		"/$d" | "/usr/$d" ) rm -rf "$TARGET_DIR/$d" ;;
+		"/$d" | "/usr/$d" ) rm -rfv "$TARGET_DIR/$d" ;;
 	esac
 
 	# Prefer usrmerge
 	if [ ! -d "$TARGET_DIR/$d" ]; then
-		rm -rf "$TARGET_DIR/$d"
-		mkdir -p "$TARGET_DIR/usr/$d"
-		ln -sf usr/$d "$TARGET_DIR/$d"
+		rm -rfv "$TARGET_DIR/$d"
+		mkdir -pv "$TARGET_DIR/usr/$d"
+		ln -sfv usr/$d "$TARGET_DIR/$d"
 	fi
 done
 
@@ -193,7 +193,7 @@ cleanup_symlinks() {
 
 	for d in lib bin sbin; do
 		if [ -L "$TARGET_DIR/$d" ]; then
-			rm "$TARGET_DIR/$d"
+			rm -rfv "$TARGET_DIR/$d"
 		fi
 	done
 }

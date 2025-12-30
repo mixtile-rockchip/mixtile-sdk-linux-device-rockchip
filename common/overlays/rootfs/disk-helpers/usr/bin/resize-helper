@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 ### BEGIN INIT INFO
 # Provides:       resize-all
 # Default-Start:  S
@@ -37,8 +37,8 @@ do_part()
 	# Resize partition if needed
 	resize_part
 
-	# Restore ro/rw
-	remount_part $MOUNTED_RO_RW
+	# Remount to apply options
+	remount_part
 }
 
 resize_all()

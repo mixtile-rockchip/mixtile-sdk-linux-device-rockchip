@@ -9,7 +9,7 @@ find "$TARGET_DIR/etc" "$TARGET_DIR/lib" "$TARGET_DIR/usr/bin" \
 	-name "*usbdevice*" -print0 -o -name ".usb_config" -print0 \
 	-o -name "android-tools-adbd*" -print0 \
 	-o -name "android-gadget*" -print0 \
-	-o -name "adbd.sh" -print0 2>/dev/null | xargs -0 rm -rf
+	-o -name "*adbd.sh" -print0 2>/dev/null | xargs -0 rm -rfv
 
 if [ ! "$RK_USB_GADGET" ]; then
 	notice "USB gadget disabled..."
@@ -30,7 +30,7 @@ install_adbd()
 
 	ensure_tools "$TARGET_DIR/usr/bin/adbd"
 
-	if [ "$RK_USB_ADBD_TCP_PORT" -ne 0 ]; then
+	if [ "$RK_USB_ADBD_TCP" ]; then
 		echo "export ADB_TCP_PORT=$RK_USB_ADBD_TCP_PORT" >> \
 			"$TARGET_DIR/etc/profile.d/adbd.sh"
 	fi
@@ -100,7 +100,7 @@ install_ums()
 		echo "export UMS_MOUNT=$([ -z "$RK_USB_UMS_MOUNT" ] || echo 1)"
 		echo "export UMS_MOUNTPOINT=${RK_USB_UMS_MOUNTPOINT:-/mnt/ums}"
 		echo "export UMS_RO=$([ -z "$RK_USB_UMS_RO" ] || echo 1)"
-	} >> "$TARGET_DIR/etc/profile.d/usbdevice.sh"
+	} >> "$TARGET_DIR/etc/profile.d/usb-gadget.sh"
 }
 
 install_uvc()
@@ -147,7 +147,7 @@ mkdir -p "$TARGET_DIR/etc/profile.d"
 	echo "export USB_FW_VERSION=\"$RK_USB_FW_VER\""
 	echo "export USB_MANUFACTURER=\"$RK_USB_MANUFACTURER\""
 	echo "export USB_PRODUCT=\"$RK_USB_PRODUCT\""
-} > "$TARGET_DIR/etc/profile.d/usbdevice.sh"
+} > "$TARGET_DIR/etc/profile.d/usb-gadget.sh"
 
 install_adbd
 install_mtp
@@ -156,11 +156,11 @@ install_uvc
 
 $RK_RSYNC "$OVERLAY_DIR/usr" "$OVERLAY_DIR/lib" "$TARGET_DIR/"
 
-install_sysv_service "$OVERLAY_DIR/S50usbdevice.sh" 5 4 3 2 K01 0 1 6
-install_busybox_service "$OVERLAY_DIR/S50usbdevice.sh"
-install_systemd_service "$OVERLAY_DIR/usbdevice.service"
+install_sysv_service "$OVERLAY_DIR/S50usb-gadget.sh" 5 4 3 2 K01 0 1 6
+install_busybox_service "$OVERLAY_DIR/S50usb-gadget.sh"
+install_systemd_service "$OVERLAY_DIR/usb-gadget.service"
 
-mkdir -p "$TARGET_DIR/etc/usbdevice.d"
+mkdir -p "$TARGET_DIR/etc/usb-gadget.d"
 for hook in $RK_USB_HOOKS; do
 	if [ -r "$RK_CHIP_DIR/$hook" ]; then
 		hook="$RK_CHIP_DIR/$hook"
@@ -169,6 +169,10 @@ for hook in $RK_USB_HOOKS; do
 		continue
 	fi
 
-	message "Installing USB hook: $hook"
-	install -m 0644 "$hook" "$TARGET_DIR/etc/usbdevice.d/"
+	message "Installing USB gadget hook: $hook"
+	install -m 0644 "$hook" "$TARGET_DIR/etc/usb-gadget.d/"
 done
+
+# TODO: Remove it
+ln -sf usb-gadget "$TARGET_DIR/usr/bin/usbdevice"
+ln -sf usb-gadget.d "$TARGET_DIR/etc/usbdevice.d"

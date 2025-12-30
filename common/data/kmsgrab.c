@@ -27,26 +27,12 @@ static void *map_fb(int fd, int handle, size_t size) {
 	ptr = mmap(0, size, PROT_READ, MAP_SHARED, arg.fd, 0);
 	if (ptr == MAP_FAILED) {
 		fprintf(stderr, "mmap failed %s\n", strerror(errno));
+		close(arg.fd);
 		return NULL;
 	}
 
+	close(arg.fd);
 	return ptr;
-}
-
-static int get_fb_dmafd(int fd, int handle)
-{
-	struct drm_prime_handle args;
-	int ret;
-
-	memset(&args, 0, sizeof(args));
-	args.fd = -1;
-	args.handle = handle;
-
-	ret = drmIoctl(fd, DRM_IOCTL_PRIME_HANDLE_TO_FD, &args);
-	if (ret)
-		return ret;
-
-	return args.fd;
 }
 
 static void destroy_dumb(int fd, int handle) {
@@ -61,7 +47,6 @@ static int dump_fb(int fd, int fb_id) {
 	drmModeFBPtr fb = drmModeGetFB(fd, fb_id);
 	size_t size;
 	void *ptr;
-	int dmafd;
 
 	if (!fb) {
 		fprintf(stderr, "Failed to get framebuffer\n");
@@ -69,8 +54,6 @@ static int dump_fb(int fd, int fb_id) {
 	}
 
 	size = fb->pitch * fb->height;
-
-	dmafd = get_fb_dmafd(fd, fb->handle);
 
 	fprintf(stderr, "fb handle=%d size=%dx%d(%d)\n",
 		fb->handle, fb->width, fb->height, fb->pitch);
@@ -80,10 +63,9 @@ static int dump_fb(int fd, int fb_id) {
 		fprintf(stderr, "first pixel: %x\n", *((int *)ptr));
 		write(1, ptr, size);
 		munmap(ptr, size);
-		destroy_dumb(fd, fb->handle);
 	}
 
-	close(dmafd);
+	destroy_dumb(fd, fb->handle);
 	drmModeFreeFB(fb);
 	return 0;
 }
@@ -196,7 +178,7 @@ static void usage(const char *prog, int fd) {
 int main(int argc, const char** argv) {
 	int id, fd;
 
-	fd = open("/dev/dri/card0", O_RDWR);
+	fd = drmOpen("rockchip", NULL);
 	if (fd < 0) {
 		fprintf(stderr, "drm open failed\n");
 		return -1;
@@ -237,6 +219,8 @@ int main(int argc, const char** argv) {
 	dump_fb(fd, id);
 
 	// /* Add delay */ }
+
+	drmClose(fd);
 
 	return 0;
 }

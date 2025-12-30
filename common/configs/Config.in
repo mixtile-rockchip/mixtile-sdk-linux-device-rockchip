@@ -36,12 +36,22 @@ config RK_CHIP
 	help
 	  Rockchip SoC.
 
+config RK_CHIP_RISCV64
+	bool
+	depends on RK_CHIP_FAMILY = "rk182x"
+	default y
+
 config RK_CHIP_ARM32
 	bool
 	depends on RK_CHIP_FAMILY = "px3se" || RK_CHIP_FAMILY = "rk3036" || \
 		RK_CHIP_FAMILY = "rk3128h" || RK_CHIP_FAMILY = "rk312x" || \
 		RK_CHIP_FAMILY = "rk3229" || RK_CHIP_FAMILY = "rk3288" || \
 		RK_CHIP_FAMILY = "rv1126_rv1109" || RK_CHIP_FAMILY = "rk3506"
+	default y
+
+config RK_CHIP_ARM64
+	bool
+	depends on !RK_CHIP_RISCV64 && !RK_CHIP_ARM32
 	default y
 
 config RK_CHIP_HAS_GPU
@@ -66,4 +76,5 @@ source "Config.in.security"
 source "Config.in.extra-parts"
 source "Config.in.firmware"
 source "Config.in.update"
+source "Config.in.fastboot"
 source "Config.in.others"

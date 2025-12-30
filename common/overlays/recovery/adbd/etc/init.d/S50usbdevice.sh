@@ -1,1 +1,0 @@
-../../../../rootfs/usb-gadget/S50usbdevice.sh

@@ -54,16 +54,33 @@ config RK_DEBIAN_ARM64
 
 config RK_DEBIAN_ARMHF
 	bool "armhf"
+	depends on RK_KERNEL_ARM32 || RK_KERNEL_ARM64
 
 endchoice # rootfs arch
+
+config RK_DEBIAN_SERVER
+	bool "server (without desktop)"
+	select RK_ROOTFS_FRECON
+	select RK_ROOTFS_FRECON_VT1
 
 config RK_DEBIAN_MIRROR
 	string "mirror source for APT"
 	default "mirrors.ustc.edu.cn"
 
+config RK_DEBIAN_USER
+	string "default user"
+	default "linaro"
+
+config RK_DEBIAN_PASSWORD
+	string "password for the default user"
+	default "linaro"
+
 config RK_DEBIAN_LINUX_HEADERS
 	bool "install linux-headers"
 	default y
+
+config RK_DEBIAN_UNIFIED_IMAGE
+	bool "unified rootfs compatible with all chips"
 
 endif # Debian
 endmenuconfig # Debian

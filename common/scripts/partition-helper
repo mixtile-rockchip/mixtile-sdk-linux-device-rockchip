@@ -299,7 +299,7 @@ rk_extra_part_fstype()
 	rk_extra_part_arg ${1:-1} 4 ext4
 }
 
-rk_extra_part_options()
+rk_extra_part_mnt_opts()
 {
 	rk_extra_part_arg ${1:-1} 5 defaults
 }
@@ -332,6 +332,11 @@ rk_extra_part_size()
 rk_extra_part_builtin()
 {
 	rk_extra_part_arg ${1:-1} 8 | grep -wq builtin
+}
+
+rk_extra_part_mkfs_opts()
+{
+	rk_extra_part_arg ${1:-1} 9 | tr '+' ' '
 }
 
 rk_extra_part_outdir()

@@ -161,9 +161,14 @@ start_log()
 get_toolchain()
 {
 	MODULE="$1"
-	TC_ARCH="${2/arm64/aarch64}"
-	TC_VENDOR="${3-none}"
+	case "$2" in
+		arm64) TC_ARCH="aarch64" ;;
+		*) TC_ARCH="$2" ;;
+	esac
+
+	TC_VENDOR="${3:-none}"
 	TC_OS="${4:-linux}"
+	TC_ABI="${5}"
 
 	MACHINE=$(uname -m)
 	if [ "$MACHINE" != x86_64 ]; then
@@ -173,21 +178,35 @@ get_toolchain()
 			echo aarch64-linux-gnu-
 		elif [ "$TC_ARCH" = arm -a "$MACHINE" != armv7l ]; then
 			echo arm-linux-gnueabihf-
+		else
+			exit 1
 		fi
 		return 0
 	fi
 
-	# RV1126 uses custom toolchain
+	# RV1126 uses Rockchip custom toolchain
 	if [ "$RK_CHIP_FAMILY" = "rv1126_rv1109" ]; then
 		TC_VENDOR=rockchip830
 	fi
 
-	TC_DIR="$RK_SDK_DIR/prebuilts/gcc/linux-x86/$TC_ARCH"
-	if [ "$TC_VENDOR" ]; then
-		TC_PATTERN="$TC_ARCH-$TC_VENDOR-$TC_OS-[^-]*-gcc"
-	else
-		TC_PATTERN="$TC_ARCH-$TC_OS-[^-]*-gcc"
+	# RK182x uses Xuantie custom toolchain
+	if [ "$RK_CHIP_FAMILY" = "rk182x" ]; then
+		TC_VENDOR=unknown
 	fi
+
+	TC_DIR="$RK_SDK_DIR/prebuilts/gcc/linux-x86/$TC_ARCH"
+	if [ "$TC_OS" = linux ]; then
+		if [ "$TC_ABI" ]; then
+			TC_PATTERN="$TC_ARCH-$TC_VENDOR-$TC_OS-$TC_ABI-gcc"
+		else
+			# Any ABI
+			TC_PATTERN="$TC_ARCH-$TC_VENDOR-$TC_OS-[^-]*-gcc"
+		fi
+	else
+		unset TC_ABI # Without ABI
+		TC_PATTERN="$TC_ARCH-$TC_VENDOR-$TC_OS-gcc"
+	fi
+	notice "Toolchain pattern for $MODULE: $TC_PATTERN" >&2
 	GCC="$(find "$TC_DIR" -name "*gcc" | grep -m 1 "/$TC_PATTERN$" || true)"
 	if [ ! -x "$GCC" ]; then
 		{
@@ -195,6 +214,7 @@ get_toolchain()
 			error "Arch: $TC_ARCH"
 			error "Vendor: $TC_VENDOR"
 			error "OS: $TC_OS"
+			error "ABI: $TC_ABI"
 		} >&2
 		exit 1
 	fi
@@ -204,11 +224,27 @@ get_toolchain()
 
 ensure_tools()
 {
+	unset TOOL_ARCH
+	case "$RK_KERNEL_ARCH" in
+		arm) TOOL_ARCH=armhf ;;
+		arm64) TOOL_ARCH=aarch64 ;;
+		riscv)
+			if [ "$RK_CHIP_RISCV64" ]; then
+				TOOL_ARCH=riscv64
+			fi
+			;;
+	esac
+
 	for t in "$@"; do
-		if [ "$RK_ROOTFS_PREFER_PREBUILT_TOOLS" ] || \
-			[ "$RK_ROOTFS_PREBUILT_TOOLS" ] || \
-			[ ! -e "$t" ]; then
-			install -v -D -m 0755 "$RK_TOOLS_DIR/armhf/${t##*/}" "$t"
+		if [ -z "$RK_ROOTFS_PREFER_PREBUILT_TOOLS" ] && \
+			[ -z "$RK_ROOTFS_PREBUILT_TOOLS" ] && [ -e "$t" ]; then
+			# Keep the original tool
+			continue
+		fi
+
+		if [ "$TOOL_ARCH" ]; then
+			install -v -D -m 0755 \
+				"$RK_TOOLS_DIR/$TOOL_ARCH/${t##*/}" "$t"
 			continue
 		fi
 
@@ -534,6 +570,8 @@ main()
 		if [ "$TAG" ]; then
 			notice "Version: $TAG"
 		fi
+		notice "GIT commit: \"$(cd "$RK_COMMON_DIR"; \
+			git log --oneline 2>/dev/null | head -n 1)\""
 		echo
 	fi
 
@@ -714,7 +752,7 @@ main()
 
 	set +a
 
-	# The real kernel version: 4.4/4.19/5.10/6.1, etc.
+	# The real kernel version: 6.1/6.12, etc.
 	export RK_KERNEL_VERSION_RAW=$(kernel_version_raw)
 	export RK_KERNEL_VERSION="$(kernel_version)"
 
@@ -768,7 +806,8 @@ main()
 		grep -vE "=\"\"$|_DEFAULT=y|^RK_DEFAULT_TARGET|CMDS=" | \
 		grep -vE "^RK_CONFIG|_BASE_CFG=|_LINK=|DIR=|_ENV=|_NAME=|_DTB=" | \
 		grep -vE "_HELPER=|_SUPPORTS=|_ARM64=|_ARM=|_HOST=" | \
-		grep -vE "^RK_ROOTFS_SYSTEM_|^RK_YOCTO_DISPLAY_PLATFORM_" | sort
+		grep -vE "^RK_ROOTFS_SYSTEM_|^RK_YOCTO_DISPLAY_PLATFORM_" | \
+		sort | sed "s/\(PASSWORD=\).*/\1********/"
 	echo
 
 	# Pre-build stage (submodule configuring, etc.)

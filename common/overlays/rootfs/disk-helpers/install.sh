@@ -8,7 +8,7 @@ if [ "$RK_DISK_HELPERS_DISABLED" ]; then
 	find "$TARGET_DIR/etc" "$TARGET_DIR/lib" "$TARGET_DIR/usr/" \
 		-name "*mountall*" -print0 -o -name "*mount-all*" -print0 -o \
 		-name "*resizeall*" -print0 -o -name "*resize-all*" -print0 \
-		2>/dev/null | xargs -0 rm -rf
+		2>/dev/null | xargs -0 rm -rfv
 	exit 0
 fi
 

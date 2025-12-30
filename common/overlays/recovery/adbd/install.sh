@@ -17,7 +17,7 @@ install_adbd()
 		echo "export USB_FW_VERSION=\"$RK_RECOVERY_ADBD_FW_VER\""
 		echo "export USB_MANUFACTURER=\"$RK_RECOVERY_ADBD_MANUFACTURER\""
 		echo "export USB_PRODUCT=\"$RK_RECOVERY_ADBD_PRODUCT\""
-	} > "$TARGET_DIR/etc/profile.d/usbdevice.sh"
+	} > "$TARGET_DIR/etc/profile.d/usb-gadget.sh"
 
 	$RK_RSYNC "$OVERLAY_DIR/usr" "$OVERLAY_DIR/lib" "$OVERLAY_DIR/etc" \
 		"$TARGET_DIR/"
@@ -65,7 +65,7 @@ if [ ! "$RK_RECOVERY_ADBD" ]; then
 
 	find "$TARGET_DIR/etc" "$TARGET_DIR/lib" "$TARGET_DIR/usr/bin" \
 		-name "*usbdevice*" -print0 -o -name ".usb_config" -print0 \
-		2>/dev/null | xargs -0 rm -rf
+		2>/dev/null | xargs -0 rm -rfv
 else
 	message "Installing ADBD service..."
 	install_adbd

@@ -12,8 +12,8 @@ message "Installing usbmount..."
 tar xvf "$OVERLAY_DIR/usbmount.tar" -C "$TARGET_DIR"
 
 for type in storage udisk sdcard; do
-	mkdir -p "$TARGET_DIR/media/$type"{1,2,3}
-	mkdir -p "$TARGET_DIR/mnt/$type"
-	rm -rf "$TARGET_DIR/media/${type}0"
-	ln -sf "/mnt/$type" "$TARGET_DIR/media/${type}0"
+	mkdir -pv "$TARGET_DIR/media/$type"{1,2,3}
+	mkdir -pv "$TARGET_DIR/mnt/$type"
+	rm -rfv "$TARGET_DIR/media/${type}0"
+	ln -sfv "/mnt/$type" "$TARGET_DIR/media/${type}0"
 done

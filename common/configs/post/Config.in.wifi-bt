@@ -2,7 +2,7 @@
 
 menuconfig RK_WIFIBT
 	bool "Wi-Fi/BT (Kernel modules, firmwares and scripts)"
-	default y
+	default y if RK_CHIP_FAMILY != "rk182x"
 
 if RK_WIFIBT
 

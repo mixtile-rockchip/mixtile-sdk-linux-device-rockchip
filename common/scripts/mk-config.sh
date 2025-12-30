@@ -146,6 +146,41 @@ prepare_config()
 	fi
 }
 
+jump_config()
+{
+	case "$1" in
+		rootfs-type)
+			export KCONFIG_JUMP_SYMBOL="RK_ROOTFS_EXT4$" ;;
+		usb-gadget)
+			export KCONFIG_JUMP_SYMBOL="RK_USB_GADGET$" ;;
+		wifibt)
+			export KCONFIG_JUMP_SYMBOL="RK_WIFIBT$" ;;
+		overlay|rootfs-overlay)
+			export KCONFIG_JUMP_SYMBOL="RK_ROOTFS_OVERLAY$" ;;
+		post-rootfs)
+			export KCONFIG_JUMP_SYMBOL="RK_ROOTFS_LIGHTWEIGHT$" ;;
+		extra-parts)
+			export KCONFIG_JUMP_SYMBOL="RK_EXTRA_PARTITION_NUM$" ;;
+	esac
+
+	make config
+
+	case "$1" in
+		rootfs-type)
+			notice
+			notice "May need to modify kernel dts:"
+			notice "'rootfstype=' in bootargs"
+			notice
+			;;
+		extra-parts)
+			notice
+			notice "May need to modify partiton table:"
+			notice "'make edit-parts'"
+			notice
+			;;
+	esac
+}
+
 # Hooks
 
 usage_hook()
@@ -159,6 +194,13 @@ usage_hook()
 	usage_oneline " savedefconfig" "save current config to defconfig"
 	usage_oneline " menuconfig" "interactive curses-based configurator"
 	usage_oneline "config" "modify SDK defconfig"
+	usage_oneline "config-rootfs-type" "modify SDK rootfs type config"
+	usage_oneline "config-usb-gadget" "modify SDK USB gadget config"
+	usage_oneline "config-wifibt" "modify SDK Wi-Fi/BT config"
+	usage_oneline "config-rootfs-overlay" "modify SDK rootfs overlay config"
+	usage_oneline "config-overlay" "alias of config-rootfs-overlay"
+	usage_oneline "config-post-rootfs" "modify SDK post rootfs config"
+	usage_oneline "config-extra-parts" "modify SDK extra partitions config"
 }
 
 clean_hook()
@@ -166,7 +208,11 @@ clean_hook()
 	rm -rf "$RK_OUTDIR"/*config* "$RK_OUTDIR/kconf"
 }
 
-INIT_CMDS="chip defconfig lunch [^:]*_defconfig olddefconfig savedefconfig menuconfig config default"
+INIT_CMDS="chip defconfig lunch [^:]*_defconfig \
+	olddefconfig savedefconfig menuconfig config \
+	config-rootfs-type config-usb-gadget config-wifibt \
+	config-rootfs-overlay config-overlay config-post-rootfs \
+	config-extra-parts default"
 init_hook()
 {
 	case "${1:-default}" in
@@ -177,6 +223,7 @@ init_hook()
 			prepare_config
 			make $1
 			;;
+		config-*) jump_config "${1##config-}" ;;
 		config)
 			prepare_config
 			make menuconfig

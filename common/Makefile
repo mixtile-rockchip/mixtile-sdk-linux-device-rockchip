@@ -1,11 +1,9 @@
 # Makefile for Rockchip Linux SDK
 #
-# Based on buildroot-2022.08's Makefile
+# Based on buildroot-2025.02.3's Makefile
 #
-# Copyright (C) 1999-2005 by Erik Andersen <andersen@codepoet.org>
-# Copyright (C) 2006-2014 by the Buildroot developers <buildroot@uclibc.org>
-# Copyright (C) 2014-2020 by the Buildroot developers <buildroot@buildroot.org>
-# Copyright (C) 2022 by Jeffy Chen <jeffy.chen@rock-chips.com>
+# Copyright (C) the Buildroot developers <buildroot@buildroot.org>
+# Copyright (C) 2025 by Jeffy Chen <jeffy.chen@rock-chips.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -89,8 +87,15 @@ CONFIG_SHELL := $(SHELL)
 
 export SHELL CONFIG_SHELL Q KBUILD_VERBOSE
 
+ifndef HOSTCC
 HOSTCC := gcc
+HOSTCC := $(shell which $(HOSTCC) || type -p $(HOSTCC) || echo gcc)
+endif
+ifndef HOSTCXX
 HOSTCXX := g++
+HOSTCXX := $(shell which $(HOSTCXX) || type -p $(HOSTCXX) || echo g++)
+endif
+SED := $(shell which sed || type -p sed) -i -e
 
 export HOSTCC HOSTCXX
 
@@ -131,39 +136,45 @@ COMMON_CONFIG_ENV = \
 	srctree=$(CONFIG_DIR) RK_CONFIG=$(RK_CONFIG)
 
 menuconfig: $(BUILD_DIR)/mconf
-	$(Q)$(COMMON_CONFIG_ENV) $< $(CONFIG_CONFIG_IN)
-
-.PHONY: menuconfig
+	@$(COMMON_CONFIG_ENV) $< $(CONFIG_CONFIG_IN)
 
 oldconfig syncconfig olddefconfig: $(BUILD_DIR)/conf
-	$(Q)$(COMMON_CONFIG_ENV) $< --$@ $(CONFIG_CONFIG_IN)
+	@$(COMMON_CONFIG_ENV) $< --$@ $(CONFIG_CONFIG_IN)
 
-.PHONY: oldconfig syncconfig olddefconfig
+%_defconfig: $(BUILD_DIR)/conf
+	@defconfig=$(or \
+		$(firstword $(wildcard $(CHIP_DIR)/$@)), \
+		$(error "Can't find $@") \
+	); \
+	$(COMMON_CONFIG_ENV) $< --defconfig=$(CHIP_DIR)/$@ $(CONFIG_CONFIG_IN)
 
-%_defconfig: $(BUILD_DIR)/conf $(CHIP_DIR)/%_defconfig
-	$(Q)$(COMMON_CONFIG_ENV) $< --defconfig=$(CHIP_DIR)/$@ $(CONFIG_CONFIG_IN)
+.PHONY: menuconfig oldconfig syncconfig olddefconfig %_defconfig
 
-.PHONY: %_defconfig
+update-defconfig: savedefconfig
 
 savedefconfig: $(BUILD_DIR)/conf
-	$(Q)$(COMMON_CONFIG_ENV) $< \
+	@$(COMMON_CONFIG_ENV) $< \
 		--savedefconfig=$(if $(DEFCONFIG),$(DEFCONFIG),$(CHIP_DIR)/defconfig) \
 		$(CONFIG_CONFIG_IN)
-	$(Q)sed -i -e '/^RK_DEFCONFIG=/d' \
-		$(if $(DEFCONFIG),$(DEFCONFIG),$(CHIP_DIR)/defconfig)
+	@$(SED) '/^RK_DEFCONFIG=/d' $(if $(DEFCONFIG),$(DEFCONFIG),$(CHIP_DIR)/defconfig)
 
-.PHONY: savedefconfig
+.PHONY: savedefconfig update-defconfig
 
 .PHONY: help
 help:
+	@echo 'Cleaning:'
+	@echo '  clean                  - delete all files created by build'
+	@echo '  distclean              - delete all non-source files (including .config)'
+	@echo
+	@echo 'Configuration:'
 	@echo '  menuconfig             - interactive curses-based configurator'
 	@echo '  oldconfig              - resolve any unresolved symbols in .config'
 	@echo '  syncconfig             - Same as oldconfig, but quietly, additionally update deps'
 	@echo '  olddefconfig           - Same as syncconfig but sets new symbols to their default value'
 	@echo '  savedefconfig          - Save current config to $$RK_CHIP_DIR/$$RK_DEFCONFIG (minimal config)'
-	@echo '  clean                  - Cleanup'
+	@echo '  update-defconfig       - Same as savedefconfig'
 	@echo
-	@echo 'from build.sh:'
+	@echo 'From build.sh:'
 	@$(SDK_DIR)/build.sh make-usage 2>/dev/null
 
 define script_target
@@ -177,9 +188,12 @@ $(eval $(foreach t,$(SCRIPT_TARGETS),$(call script_target,$(t))$(sep)))
 .PHONY: clean
 clean:
 ifeq ($(RK_SESSION),)
-	$(Q)$(SDK_DIR)/build.sh cleanall
+	$(SDK_DIR)/build.sh cleanall
 endif
 
 .PHONY: distclean
 distclean: clean
-	$(Q)rm -rf $(BUILD_DIR) $(RK_CONFIG)*
+	rm -rf $(BUILD_DIR) $(RK_CONFIG)*
+
+# .WAIT was introduced in make 4.4. For older make, define it as phony.
+.PHONY: .WAIT

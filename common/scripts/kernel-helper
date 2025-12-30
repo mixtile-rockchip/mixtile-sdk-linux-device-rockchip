@@ -18,7 +18,12 @@ if echo $RK_KERNEL_CFG $RK_KERNEL_CFG_FRAGMENTS | grep -q aarch32 && \
 	export RK_KERNEL_ARCH=arm
 fi
 
-export RK_KERNEL_TOOLCHAIN="$(get_toolchain kernel "$RK_KERNEL_ARCH")"
+if [ "$RK_CHIP_RISCV64" ]; then
+	# Kernel uses "riscv" arch for RISCV64.
+	export RK_KERNEL_TOOLCHAIN="$(get_toolchain kernel riscv64)"
+else
+	export RK_KERNEL_TOOLCHAIN="$(get_toolchain kernel "$RK_KERNEL_ARCH")"
+fi
 [ "$RK_KERNEL_TOOLCHAIN" ] || exit 1
 
 export KMAKE="make -C "$RK_SDK_DIR/kernel/" -j$(( $(nproc) + 1 )) \

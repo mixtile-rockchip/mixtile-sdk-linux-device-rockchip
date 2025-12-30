@@ -85,7 +85,7 @@ bootanim_start()
 			# Check panel for x11 desktop
 			if ls -l /proc/*/exe 2>/dev/null | grep -wq panel; then
 				# Wait for panel painting
-				sleep 1
+				sleep 2
 				break
 			fi
 			sleep 1

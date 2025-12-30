@@ -53,17 +53,25 @@ config RK_UBOOT_ARCH
 	string
 	default "arm" if RK_UBOOT_ARM32
 	default "arm64" if RK_UBOOT_ARM64
+	default "riscv64" if RK_UBOOT_RISCV64
 
 choice
 	prompt "arch"
 	default RK_UBOOT_ARM32 if RK_KERNEL_ARM32
-
-config RK_UBOOT_ARM64
-	bool "arm64"
-	depends on !RK_CHIP_ARM32
+	default RK_UBOOT_ARM64 if RK_KERNEL_ARM64
+	default RK_UBOOT_RISCV64 if RK_KERNEL_RISCV64
 
 config RK_UBOOT_ARM32
 	bool "arm"
+	depends on RK_CHIP_ARM32 || RK_CHIP_ARM64
+
+config RK_UBOOT_ARM64
+	bool "arm64"
+	depends on RK_CHIP_ARM64
+
+config RK_UBOOT_RISCV64
+	bool "riscv64"
+	depends on RK_CHIP_RISCV64
 
 endchoice # arch
 

@@ -27,9 +27,9 @@ log() {
 PID=$(cat $PID_FILE 2>/dev/null || true)
 if [ "$PID" ]; then
 	log "Stopping log-guardian ($PID)..."
-	kill -9 -$PID 2>/dev/null || true
-	killall -9 log-guardian || true
 	rm -f "$PID_FILE"
+	kill -$PID 2>/dev/null || true
+	kill -9 -$PID 2>/dev/null || true
 fi
 
 for opt in $@; do
@@ -99,7 +99,7 @@ process_dir() {
 
 	# 1/ Try to remove backup logs
 	for suffix in "~" $(find "$LOG_DIR" -type f -name "*.*" | \
-		grep -oE "[0-9]+$" | sort -rh | uniq); do
+		grep -oE "[0-9]+$|[0-9]+.gz$" | sort -rh | uniq); do
 		log "Removing \"*.$suffix\"..."
 		find "$LOG_DIR" -type f -name "*.$suffix" -exec rm {} +
 		is_full "$LOG_DIR" || return 0

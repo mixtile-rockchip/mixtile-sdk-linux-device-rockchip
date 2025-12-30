@@ -18,15 +18,16 @@ config RK_AMP_ARCH
 
 choice
 	prompt "arch"
-	default RK_AMP_ARM32
-
-config RK_AMP_ARM64
-	bool "arm64"
-	depends on !RK_CHIP_ARM32
 
 config RK_AMP_ARM32
 	bool "arm"
+	depends on RK_CHIP_ARM32 || RK_CHIP_ARM64
 
+config RK_AMP_ARM64
+	bool "arm64"
+	depends on RK_CHIP_ARM64
+
+# For MCU
 config RK_AMP_RISCV
 	bool "riscv"
 

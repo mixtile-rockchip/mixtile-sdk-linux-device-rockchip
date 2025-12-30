@@ -32,9 +32,16 @@ menuconfig RK_USB_ADBD
 
 if RK_USB_ADBD
 
+menuconfig RK_USB_ADBD_TCP
+	bool "listen on TCP port"
+	default y
+
 config RK_USB_ADBD_TCP_PORT
 	int "TCP port"
+	depends on RK_USB_ADBD_TCP
 	default 5555
+
+endmenuconfig # TCP
 
 config RK_USB_ADBD_SHELL
 	string "login shell"
@@ -100,7 +107,7 @@ config RK_USB_RNDIS
 	bool "Remote Network Driver Interface Specification (RNDIS)"
 
 menuconfig RK_USB_UMS
-	bool "USB mass storage (UMS)"
+	bool "USB Mass Storage (UMS)"
 
 if RK_USB_UMS
 
@@ -153,7 +160,7 @@ config RK_USB_MIDI
 	bool "Musical Instrument Digital Interface (MIDI)"
 
 config RK_USB_SERIAL
-	bool "USB Gadget Serial (GSER)"
+	bool "Generic Serial (GSER)"
 
 config RK_USB_EXTRA
 	string "extra USB gadget configs"

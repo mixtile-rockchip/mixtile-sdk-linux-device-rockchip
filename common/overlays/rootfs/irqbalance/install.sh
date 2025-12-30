@@ -11,6 +11,8 @@ message "Installing irqbalance service..."
 
 $RK_RSYNC "$OVERLAY_DIR/usr" "$OVERLAY_DIR/etc" "$TARGET_DIR/"
 
+ensure_tools "$TARGET_DIR/usr/sbin/irqbalance"
+
 install_sysv_service "$OVERLAY_DIR/S13irqbalance" 5 4 3 2 K04 0 1 6
 install_busybox_service "$OVERLAY_DIR/S13irqbalance"
 install_systemd_service "$OVERLAY_DIR/irqbalance.service"
