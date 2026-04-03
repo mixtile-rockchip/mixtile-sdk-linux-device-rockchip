@@ -1,0 +1,6 @@
+RK_KERNEL_DTS_NAME="rk3588s-focalcrest-az04b"
+RK_USE_FIT_IMG=y
+RK_WIFIBT_CHIP="AP6256"
+RK_BUILDROOT_BASE_CFG="rk3588s_focalcrest_az04b"
+RK_RECOVERY=n
+RK_PARAMETER="parameter-az04b.txt"
