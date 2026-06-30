@@ -23,14 +23,14 @@ if [ "$RK_DEBIAN_PASSWORD" != "$DEFAULT_PASSWORD" ]; then
 fi
 
 if ! [ "$RK_DEBIAN_UNIFIED_IMAGE" ]; then
-	if grep -q rknpu "$RK_KERNEL_DTB"; then
+	if grep -q rknpu "$RK_SDK_DIR/$RK_KERNEL_DTB"; then
 		message "Extracting NPU2 tarball..."
 		tar xvf rknpu2.tar || true
 	fi
 
 	PKGS=()
 
-	if grep -q rkisp "$RK_KERNEL_DTB"; then
+	if grep -q rkisp "$RK_SDK_DIR/$RK_KERNEL_DTB"; then
 		PKGS+=(./camera_engine_rkaiq_${RK_CHIP_FAMILY#rk3566_}_*.deb)
 
 		# HACK: Fallback to rkisp.
