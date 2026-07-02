@@ -314,10 +314,13 @@ build_wifibt()
 		ln -sf wifibt-util.sh "$TARGET_DIR/usr/bin/$b"
 	done
 
-	if [ "$RK_ROOTFS_PREBUILT_TOOLS" ]; then
-		echo "installing prebuilt debug tools"
-		install -m 0755 $RKWIFIBT_DIR/bin/arm/* "$TARGET_DIR/usr/bin/"
-	fi
+	# Install WiFi/BT debug tools based on kernel arch
+	case "$RK_KERNEL_ARCH" in
+		arm64) WIFIBT_ARCH=arm64 ;;
+		*) WIFIBT_ARCH=arm ;;
+	esac
+	echo "installing prebuilt debug tools ($WIFIBT_ARCH)"
+	install -m 0755 $RKWIFIBT_DIR/bin/$WIFIBT_ARCH/* "$TARGET_DIR/usr/bin/"
 
 	if check_bt; then
 		if ! grep -wq wireless-bluetooth "$RK_KERNEL_DTB"; then
