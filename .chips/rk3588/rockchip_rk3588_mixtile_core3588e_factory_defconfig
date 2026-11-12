@@ -1,4 +1,5 @@
 RK_KERNEL_DTS_NAME="rk3588-mixtile-core3588e-factory"
+RK_KERNEL_EXTRA_DTBS="rk3588-mixtile-core3588e-v2-factory#_saradc_ch5=682"
 RK_USE_FIT_IMG=y
 RK_BUILDROOT_BASE_CFG="rk3588_mixtile_core3588e"
 RK_KERNEL_CFG_FRAGMENTS="mixtile_core3588e.config"

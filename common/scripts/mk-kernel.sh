@@ -85,6 +85,29 @@ do_build()
 				"$KERNEL_DTS_DIR/$RK_KERNEL_DTS_NAME.dtb" \
 				"$RK_KERNEL_DTB"
 
+			if [ -n "$RK_KERNEL_EXTRA_DTBS" ]; then
+				EXTRA_DTBS=""
+				for extra in $RK_KERNEL_EXTRA_DTBS; do
+					extra_dts="${extra%%#*}"
+					run_command $KMAKE "rockchip/$extra_dts.dtb"
+					EXTRA_DTBS="$EXTRA_DTBS $extra"
+				done
+
+				RESC_TMP="$(mktemp -d)"
+				run_command kernel/scripts/resource_tool \
+					--unpack --image=kernel/resource.img "$RESC_TMP" >/dev/null
+				for extra in $EXTRA_DTBS; do
+					extra_dts="${extra%%#*}"
+					run_command cp \
+						"kernel/arch/$RK_KERNEL_ARCH/boot/dts/rockchip/$extra_dts.dtb" \
+						"$RESC_TMP/$extra.dtb"
+				done
+				run_command kernel/scripts/resource_tool \
+					--pack --root="$RESC_TMP" --image=kernel/resource.img \
+					$(find "$RESC_TMP" -type f | sort)
+				rm -rf "$RESC_TMP"
+			fi
+
 			# The FIT image for initrd would be packed in rootfs stage
 			if [ -n "$RK_BOOT_FIT_ITS" ] && \
 				[ -z "$RK_ROOTFS_INITRD" ]; then
